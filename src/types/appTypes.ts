@@ -25,3 +25,5 @@ export type IPERMISSION =
   | 'View_Settings'
   | 'Manage_Settings'
   | 'Manage_Call_Center';
+
+export type PAYMENTSTATUS = 'Paid' | 'Unpaid';

@@ -59,6 +59,7 @@ export class GroupsService {
       order: order,
       filter: filterConditions,
       repository: this.groupRepository,
+      routeName: options.routeName
     });
   }
 

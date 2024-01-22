@@ -8,6 +8,7 @@ import {
   Delete,
   Query,
   UseGuards,
+  Req,
 } from '@nestjs/common';
 import { RolesService } from './roles.service';
 import { CreateRoleDto } from './dto/create-role.dto';
@@ -28,8 +29,8 @@ export class RolesController {
     description: 'Role has been successfully created.',
   })
   @ApiResponse({ status: 400, description: 'Bad Request' })
-  create(@Body() createRoleDto: CreateRoleDto, createdBy: string) {
-    return this.rolesService.create(createRoleDto, createdBy);
+  create(@Body() createRoleDto: CreateRoleDto, @Req() req) {
+    return this.rolesService.create(createRoleDto, req.userDetails.user);
   }
 
   @Get()
@@ -74,7 +75,10 @@ export class RolesController {
     @Query('name') query: string,
     @Query('orderByName') name: OrderDirection,
     @Query('orderByDateCreated') createdAt: OrderDirection,
+    @Req() req,
   ) {
+    const routeName = `${req.protocol}://${req.get('host')}${req.path}`;
+
     const options = {
       page,
       pageSize,
@@ -83,6 +87,7 @@ export class RolesController {
         { column: 'name', direction: name },
         { column: 'createdAt', direction: createdAt },
       ],
+      routeName,
     };
 
     try {
@@ -103,9 +108,9 @@ export class RolesController {
   update(
     @Param('id') id: string,
     @Body() updateRoleDto: UpdateRoleDto,
-    updatedBy: string,
+    @Req() req,
   ) {
-    return this.rolesService.update(+id, updateRoleDto, updatedBy);
+    return this.rolesService.update(+id, updateRoleDto, req.userDetails.user);
   }
 
   @Delete(':id')

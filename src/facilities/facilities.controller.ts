@@ -8,6 +8,7 @@ import {
   Delete,
   Query,
   UseGuards,
+  Req,
 } from '@nestjs/common';
 import { FacilitiesService } from './facilities.service';
 import { CreateFacilityDto } from './dto/create-facility.dto';
@@ -28,8 +29,11 @@ export class FacilitiesController {
     description: 'Facility has been successfully created.',
   })
   @ApiResponse({ status: 400, description: 'Bad Request' })
-  create(@Body() createFacilityDto: CreateFacilityDto, createdBy: string) {
-    return this.facilitiesService.create(createFacilityDto, createdBy);
+  create(@Body() createFacilityDto: CreateFacilityDto, @Req() req) {
+    return this.facilitiesService.create(
+      createFacilityDto,
+      req.userDetails.user,
+    );
   }
 
   @Get()
@@ -75,7 +79,10 @@ export class FacilitiesController {
     @Query('name') query: string,
     @Query('orderByName') name: OrderDirection,
     @Query('orderByDateCreated') createdAt: OrderDirection,
+    @Req() req,
   ) {
+    const routeName = `${req.protocol}://${req.get('host')}${req.path}`;
+
     const options = {
       page,
       pageSize,
@@ -84,6 +91,7 @@ export class FacilitiesController {
         { column: 'name', direction: name },
         { column: 'createdAt', direction: createdAt },
       ],
+      routeName,
     };
 
     try {
@@ -104,9 +112,13 @@ export class FacilitiesController {
   update(
     @Param('id') id: string,
     @Body() updateFacilityDto: UpdateFacilityDto,
-    updatedBy: string,
+    @Req() req,
   ) {
-    return this.facilitiesService.update(+id, updateFacilityDto, updatedBy);
+    return this.facilitiesService.update(
+      +id,
+      updateFacilityDto,
+      req.userDetails.user,
+    );
   }
 
   @Delete(':id')

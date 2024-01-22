@@ -3,17 +3,14 @@ import {
   CreateDateColumn,
   Entity,
   JoinColumn,
+  OneToMany,
   OneToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import {
-  IDTYPES,
-  STAFFGENDER,
-  STAFFMARITALSTATUS,
-  STAFFTITLE,
-} from 'src/types';
 import { User } from 'src/users/entities/user.entity';
+import { IndividualSubscriber } from 'src/individual-subscribers/entities/individual-subscriber.entity';
+import { GENDER, IDTYPES, MARITALSTATUS, TITLE } from 'src/lib';
 
 @Entity('staff')
 export class Staff {
@@ -24,7 +21,7 @@ export class Staff {
   staffCode: string;
 
   @Column()
-  title: STAFFTITLE;
+  title: TITLE;
 
   @Column()
   firstName: string;
@@ -39,7 +36,7 @@ export class Staff {
   email: string;
 
   @Column()
-  gender: STAFFGENDER;
+  gender: GENDER;
 
   @Column()
   phoneNumber: string;
@@ -51,7 +48,7 @@ export class Staff {
   position: string;
 
   @Column()
-  marritalStatus: STAFFMARITALSTATUS;
+  marritalStatus: MARITALSTATUS;
 
   @Column()
   idType: IDTYPES;
@@ -77,4 +74,9 @@ export class Staff {
 
   @Column({ nullable: true })
   updatedBy: string;
+
+  @OneToMany(() => IndividualSubscriber, (subscriber) => subscriber.agent, {
+    onDelete: 'SET NULL',
+  })
+  individualSubscribers: IndividualSubscriber[];
 }

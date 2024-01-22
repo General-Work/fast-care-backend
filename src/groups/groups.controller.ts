@@ -8,13 +8,15 @@ import {
   Delete,
   Query,
   UseGuards,
+  Req,
 } from '@nestjs/common';
 import { GroupsService } from './groups.service';
 import { CreateGroupDto } from './dto/create-group.dto';
 import { UpdateGroupDto } from './dto/update-group.dto';
-import { ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { OrderBy, OrderDirection } from 'src/pagination/pagination.service';
+import { ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { OrderDirection } from 'src/pagination/pagination.service';
 import { JwtGuard } from 'src/auth/gurads/jwt-auth.guard';
+import { Request } from 'express';
 
 @ApiTags('Groups')
 @UseGuards(JwtGuard)
@@ -28,8 +30,8 @@ export class GroupsController {
     description: 'Group has been successfully created.',
   })
   @ApiResponse({ status: 400, description: 'Bad Request' })
-  create(@Body() createGroupDto: CreateGroupDto, createdBy: string) {
-    return this.groupsService.create(createGroupDto, createdBy);
+  create(@Body() createGroupDto: CreateGroupDto, @Req() req: Request) {
+    return this.groupsService.create(createGroupDto, req.userDetails.user);
   }
 
   @Get()
@@ -74,7 +76,13 @@ export class GroupsController {
     @Query('name') query: string,
     @Query('orderByName') name: OrderDirection,
     @Query('orderByDateCreated') createdAt: OrderDirection,
+
+    @Req() req,
   ) {
+    const routeName = `${req.protocol}://${req.get('host')}${req.path}`;
+
+    // console.log(req.userDetails)
+
     const options = {
       page,
       pageSize,
@@ -83,6 +91,7 @@ export class GroupsController {
         { column: 'name', direction: name },
         { column: 'createdAt', direction: createdAt },
       ],
+      routeName,
     };
 
     try {
@@ -103,9 +112,10 @@ export class GroupsController {
   update(
     @Param('id') id: string,
     @Body() updateGroupDto: UpdateGroupDto,
-    updatedBy: string,
+    // updatedBy: string,
+    @Req() req,
   ) {
-    return this.groupsService.update(+id, updateGroupDto, updatedBy);
+    return this.groupsService.update(+id, updateGroupDto, req.userDetails.user);
   }
 
   @Delete(':id')

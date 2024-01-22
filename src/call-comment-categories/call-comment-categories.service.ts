@@ -59,6 +59,7 @@ export class CallCommentCategoriesService {
       order: order,
       filter: filterConditions,
       repository: this.categoryRepository,
+      routeName: options.routeName,
     });
   }
 

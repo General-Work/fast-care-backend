@@ -51,18 +51,20 @@ export class AuthService {
   }
 
   async refreshToken(user: User) {
+    // console.log(user);
+    const data = await this.userService.findOneWithUsername(user.username);
     const payload = {
-      username: user.username,
-      firstName: user.staff.firstName,
-      lastName: user.staff.lastName,
-      otherNames: user.staff.otherNames,
-      id: user.id,
-      staffDbId: user.staff.id,
-      staffCode: user.staff.staffCode,
-      roleId: user.role.id,
+      username: data.username,
+      firstName: data.staff.firstName,
+      lastName: data.staff.lastName,
+      otherNames: data.staff.otherNames,
+      id: data.id,
+      staffDbId: data.staff.id,
+      staffCode: data.staff.staffCode,
+      roleId: data.role.id,
       sub: {
-        name: `${user.staff.firstName} ${user.staff.otherNames ?? ''} ${
-          user.staff.lastName
+        name: `${data.staff.firstName} ${data.staff.otherNames ?? ''} ${
+          data.staff.lastName
         }`,
       },
     };

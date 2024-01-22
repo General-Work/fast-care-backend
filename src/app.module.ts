@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { dataSourceOptions } from 'db/data-source';
 import { UsersModule } from './users/users.module';
@@ -12,6 +12,9 @@ import { RolesModule } from './roles/roles.module';
 import { PermissionsModule } from './permissions/permission.module';
 import { MailModule } from './mail/mail.module';
 import { AuthModule } from './auth/auth.module';
+import { ExtractUserMiddleware } from './middlewares/extract-user.middleware';
+import { IndividualSubscribersModule } from './individual-subscribers/individual-subscribers.module';
+import { PaymentsModule } from './payments/payments.module';
 
 @Module({
   imports: [
@@ -26,9 +29,15 @@ import { AuthModule } from './auth/auth.module';
     RolesModule,
     PermissionsModule,
     MailModule,
-    AuthModule
+    AuthModule,
+    IndividualSubscribersModule,
+    PaymentsModule,
   ],
   controllers: [],
-  providers: [],
+  providers: [ExtractUserMiddleware],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(ExtractUserMiddleware).forRoutes('*');
+  }
+}

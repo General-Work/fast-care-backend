@@ -3,32 +3,37 @@ import * as nodemailer from 'nodemailer';
 
 @Injectable()
 export class MailService {
-  async sendMail(email: string, subject: string, text: string): Promise<void> {
+  async sendMail(
+    email: string,
+    subject: string,
+    text: string,
+    html?: any,
+  ): Promise<string | undefined | null> {
     try {
-      // Create a nodemailer transporter
       const transporter = nodemailer.createTransport({
-        // Replace the SMTP configuration with your email provider details
-        host: 'smtp.office365.com',
-        port: 587,
+        host: `${process.env.MAIL_HOST}`,
+        port: Number(process.env.MAIL_PORT),
         secure: false,
         requireTLS: true,
+        // service: 'gmail',
+
         auth: {
-          user: 'leaveapp@ugmc.ug.edu.gh',
-          pass: 'Genesis1:1',
+          user: `${process.env.MAIL_USER}`,
+          pass: `${process.env.MAIL_PASSWORD}`,
         },
         tls: { ciphers: 'SSLv3' },
       });
 
-      // Define the email message
       const message = {
-        from: 'leaveapp@ugmc.ug.edu.gh', // Replace with your email address
+        from: `${process.env.MAIL_USER}`,
         to: email,
         subject,
         text,
+        html,
       };
 
-      // Send the email
-      await transporter.sendMail(message);
+      const res = await transporter.sendMail(message);
+      return res?.messageId;
     } catch (err) {
       console.log(err);
     }

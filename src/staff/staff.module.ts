@@ -9,5 +9,6 @@ import { PaginationModule } from 'src/pagination/pagination.module';
   imports: [TypeOrmModule.forFeature([Staff]), PaginationModule],
   controllers: [StaffController],
   providers: [StaffService],
+  // exports: [StaffService],
 })
 export class StaffModule {}

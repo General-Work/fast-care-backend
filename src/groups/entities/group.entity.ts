@@ -1,7 +1,9 @@
+import { IndividualSubscriber } from 'src/individual-subscribers/entities/individual-subscriber.entity';
 import {
   Column,
   CreateDateColumn,
   Entity,
+  OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
@@ -16,6 +18,9 @@ export class Group {
 
   @CreateDateColumn()
   createdAt: Date;
+
+  @OneToMany(() => IndividualSubscriber, (subscriber) => subscriber.group)
+  subscribers: IndividualSubscriber[];
 
   @UpdateDateColumn()
   updatedAt: Date;

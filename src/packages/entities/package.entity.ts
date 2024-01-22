@@ -1,7 +1,9 @@
+import { IndividualSubscriber } from 'src/individual-subscribers/entities/individual-subscriber.entity';
 import {
   Column,
   CreateDateColumn,
   Entity,
+  OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
@@ -16,6 +18,9 @@ export class Package {
 
   @Column({ nullable: true })
   description: string;
+
+  @OneToMany(() => IndividualSubscriber, (subscriber) => subscriber.package)
+  subscribers: IndividualSubscriber[];
 
   @Column()
   amount: number;

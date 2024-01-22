@@ -1,3 +1,4 @@
+import { IndividualSubscriber } from 'src/individual-subscribers/entities/individual-subscriber.entity';
 import { User } from 'src/users/entities/user.entity';
 import {
   Column,
@@ -27,6 +28,9 @@ export class Facility {
 
   @OneToMany(() => User, (user) => user.role)
   users: User[];
+
+  @OneToMany(() => IndividualSubscriber, (subscriber) => subscriber.facility)
+  subscribers: IndividualSubscriber[];
 
   @CreateDateColumn()
   createdAt: Date;

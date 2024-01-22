@@ -1,12 +1,3 @@
-export const GENDER = ['Male', 'Female'];
-export const TITLE = ['Mr', 'Mrs', 'Miss', 'Hon', 'Dr', 'Prof', 'Rev'];
-export const MARITALSTATUS = ['Married', 'Single', 'Divorced', 'Widowed'];
-export const IDOPTIONS = [
-  'Voter ID',
-  'ECOWAS Card',
-  'Passport',
-  "Driver's License",
-];
 export const PERMISSIONS = [
   'View_Dashboard',
   'Manage_Users',
@@ -24,3 +15,56 @@ export const PERMISSIONS = [
   'Manage_Settings',
   'Manage_Call_Center',
 ];
+
+export enum IDTYPES {
+  Passport = 'Passport',
+  ECOWASCard = 'ECOWAS Card',
+  DriverLicense = 'Driver License',
+  VoterId = 'Voter ID',
+}
+
+export enum GENDER {
+  Male = 'Male',
+  Female = 'Female',
+}
+
+export enum MARITALSTATUS {
+  Married = 'Married',
+  Single = 'Single',
+  Divorced = 'Divorced',
+  Widowed = 'Widowed',
+}
+
+export enum PAYMENTMODE {
+  Cash = 'Cash',
+  MOMO = 'MOMO',
+  Cheque = 'Cheque',
+}
+
+export enum FREQUENCY {
+  Daily = 'Daily',
+  Monthly = 'Monthly',
+  Weekly = 'Weekly',
+}
+
+export enum TITLE {
+  Mr = 'Mr',
+  Mrs = 'Mrs',
+  Miss = 'Miss',
+  Hon = 'Hon',
+  Dr = 'Dr',
+  Prof = 'Prof',
+  Rev = 'Rev',
+}
+
+export enum MOMONETWORK {
+  MTN = 'MTN',
+  VODAFONE = 'VODAFONE',
+  AIRTELTIGO = 'AIRTELTIGO',
+  None = ""
+}
+
+export enum PAYMENTSTATUS {
+  Paid = 'Paid',
+  Unpaid = 'Unpaid',
+}

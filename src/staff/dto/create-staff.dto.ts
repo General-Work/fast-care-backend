@@ -1,30 +1,22 @@
 import { ApiProperty } from '@nestjs/swagger';
 import {
   IsEmail,
-  IsIn,
+  IsEnum,
   IsNotEmpty,
   IsOptional,
   IsString,
 } from 'class-validator';
-import { GENDER, IDOPTIONS, MARITALSTATUS, TITLE } from 'src/lib';
-import {
-  IDTYPES,
-  STAFFMARITALSTATUS,
-  STAFFGENDER,
-  STAFFTITLE,
-} from 'src/types';
+import { GENDER, IDTYPES, MARITALSTATUS, TITLE } from 'src/lib';
 
 export class CreateStaffDto {
   @IsNotEmpty({ message: 'Title can not be null' })
-  @IsString({ message: 'Title should be a string' })
-  @IsIn(TITLE, { message: 'Invalid title' })
   @ApiProperty({
     description: 'Title of the staff',
-    example: 'string',
+    example: TITLE.Mr,
     required: true,
     enum: TITLE,
   })
-  title: STAFFTITLE;
+  title: TITLE;
 
   @IsNotEmpty({ message: 'First name can not be null' })
   @IsString({ message: 'First name should be a string' })
@@ -57,15 +49,14 @@ export class CreateStaffDto {
   otherNames: string;
 
   @IsNotEmpty({ message: 'Gender can not be null' })
-  @IsString({ message: 'Gender should be a string' })
-  @IsIn(GENDER, { message: 'Invalid gender' })
+  @IsEnum(GENDER)
   @ApiProperty({
     description: 'Gender of the staff',
     example: 'Male',
     required: true,
     enum: GENDER,
   })
-  gender: STAFFGENDER;
+  gender: GENDER;
 
   @IsNotEmpty({ message: 'Phone number can not be null' })
   @IsString({ message: 'Phone number should be a string' })
@@ -108,24 +99,21 @@ export class CreateStaffDto {
   position: string;
 
   @IsNotEmpty({ message: 'Marital status can not be null' })
-  @IsString({ message: 'Marital status should be a string' })
-  @IsIn(MARITALSTATUS, { message: 'Invalid marital status' })
+  @IsEnum(MARITALSTATUS)
   @ApiProperty({
     description: 'Marital status of the staff',
-    example: 'string',
+    example: MARITALSTATUS.Single,
     required: true,
     enum: MARITALSTATUS,
   })
-  marritalStatus: STAFFMARITALSTATUS;
+  marritalStatus: MARITALSTATUS;
 
   @IsNotEmpty({ message: 'ID type can not be null' })
-  @IsString({ message: 'ID type should be a string' })
-  @IsIn(IDOPTIONS, { message: 'Invalid ID type' })
   @ApiProperty({
     description: 'ID type of the staff',
-    example: 'string',
+    example: IDTYPES.DriverLicense,
     required: true,
-    enum: IDOPTIONS,
+    enum: IDTYPES,
   })
   idType: IDTYPES;
 

@@ -8,6 +8,7 @@ import {
   Delete,
   Query,
   UseGuards,
+  Req,
 } from '@nestjs/common';
 import { PackagesService } from './packages.service';
 import { CreatePackageDto } from './dto/create-package.dto';
@@ -28,8 +29,8 @@ export class PackagesController {
     description: 'Group has been successfully created.',
   })
   @ApiResponse({ status: 400, description: 'Bad Request' })
-  create(@Body() createPackageDto: CreatePackageDto, createdBy: string) {
-    return this.packagesService.create(createPackageDto, createdBy);
+  create(@Body() createPackageDto: CreatePackageDto, @Req() req) {
+    return this.packagesService.create(createPackageDto, req.userDetails.user);
   }
 
   @Get()
@@ -74,7 +75,9 @@ export class PackagesController {
     @Query('name') query: string,
     @Query('orderByName') name: OrderDirection,
     @Query('orderByDateCreated') createdAt: OrderDirection,
+    @Req() req,
   ) {
+    const routeName = `${req.protocol}://${req.get('host')}${req.path}`;
     const options = {
       page,
       pageSize,
@@ -83,6 +86,7 @@ export class PackagesController {
         { column: 'name', direction: name },
         { column: 'createdAt', direction: createdAt },
       ],
+      routeName,
     };
 
     try {
@@ -103,9 +107,13 @@ export class PackagesController {
   update(
     @Param('id') id: string,
     @Body() updatePackageDto: UpdatePackageDto,
-    updatedBy: string,
+    @Req() req,
   ) {
-    return this.packagesService.update(+id, updatePackageDto, updatedBy);
+    return this.packagesService.update(
+      +id,
+      updatePackageDto,
+      req.userDetails.user,
+    );
   }
 
   @Delete(':id')

@@ -18,7 +18,11 @@ import {
   encodedPassword,
   generateDefaultPassword,
 } from 'src/lib';
-import { PaginationService } from 'src/pagination/pagination.service';
+import {
+  PaginatedResult,
+  PaginationOptions,
+  PaginationService,
+} from 'src/pagination/pagination.service';
 import { MailService } from 'src/mail/mail.service';
 import { ChangePasswordDto } from './dto/change-password.dto';
 
@@ -30,6 +34,7 @@ export class UsersService {
     private readonly paginationService: PaginationService,
     private readonly mailService: MailService,
   ) {}
+
   async create(data: CreateUserDto, createBy: string) {
     const role = new Role();
     role.id = data.roleId;
@@ -50,20 +55,37 @@ export class UsersService {
     user.createdBy = createBy;
     user.passwordResetRequired = true;
 
+    const queryRunner =
+      this.userRepository.manager.connection.createQueryRunner();
+
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
     try {
-      const res = await this.userRepository.save(user);
-      await this.mailService.sendMail(
-        res.username,
+      await queryRunner.manager.save(User, user);
+
+      const ret = await this.mailService.sendMail(
+        data.email,
         'Welcome to Fastcare Clinics! Your Default Password',
-        `Your cannot is successfully created.
-        Your default password is: ${password}`,
+        `Your account is successfully created. `,
+        `<strong>Your default password is:</strong> ${password} <br/> <span>Don't forget to change this password after a successfully login to the system for the first time.</sapn>`,
       );
-      return {
-        message: 'User has been successfully created.',
-        status: HttpStatus.CREATED,
-        success: true,
-      };
+
+      if (ret) {
+        await queryRunner.commitTransaction();
+
+        return {
+          message: 'User has been successfully created.',
+          status: HttpStatus.CREATED,
+          success: true,
+        };
+      } else {
+        await queryRunner.rollbackTransaction();
+        throw new Error('Email sending failed.');
+      }
     } catch (error) {
+      await queryRunner.rollbackTransaction();
+
       if (
         error instanceof QueryFailedError &&
         error.message.includes('duplicate key')
@@ -72,12 +94,44 @@ export class UsersService {
       } else {
         throw error;
       }
+    } finally {
+      await queryRunner.release();
     }
   }
 
-  findAll() {
-    return this.userRepository.find();
+  async findAll(options: PaginationOptions): Promise<PaginatedResult> {
+    const filterConditions = options.filter?.name ? options.filter : {};
+    let order = [];
+    if (options.order[0].direction) order.push(options.order[0]);
+    if (options.order[1].direction) order.push(options.order[1]);
+
+    const res = await this.paginationService.paginate({
+      ...options,
+      order: order,
+      filter: filterConditions,
+      repository: this.userRepository,
+      routeName: options.routeName,
+    });
+
+    const d = {
+      ...res,
+      data: res.data
+        ? res.data.map((x) => {
+            const { password, ...dataWithoutPassword } = x;
+            return dataWithoutPassword;
+          })
+        : [],
+    };
+
+    return d;
   }
+
+  async findUser(id: number) {
+    const res = await this.findOneById(id);
+    const { password, ...data } = res;
+    return data;
+  }
+
   async findOneById(id: number) {
     const group = await this.userRepository.findOneBy({ id });
 
@@ -95,8 +149,31 @@ export class UsersService {
     });
   }
 
-  update(id: number, updateUserDto: UpdateUserDto) {
-    return `This action updates a #${id} user`;
+  async update(id: number, data: UpdateUserDto, updatedBy: string) {
+    const user = await this.findOneById(id);
+
+    if (!user) {
+      throw new NotFoundException('user not found');
+    }
+
+    const role = new Role();
+    role.id = data.roleId;
+
+    const facility = new Facility();
+    facility.id = data.facilityId;
+
+    user.facility = facility;
+    user.role = role;
+    user.updatedBy = updatedBy;
+    user.updatedAt = new Date();
+
+    await this.userRepository.save(user);
+
+    return {
+      message: 'User updated successfully',
+      status: HttpStatus.OK,
+      success: true,
+    };
   }
 
   async changePassword(data: ChangePasswordDto, updatedBy: string) {

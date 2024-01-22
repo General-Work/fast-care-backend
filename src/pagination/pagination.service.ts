@@ -11,6 +11,7 @@ export interface PaginationOptions {
   filter?: Record<string, any>;
   order?: OrderBy[];
   repository?: Repository<any>;
+  routeName: string;
 }
 
 export interface PageInfo {
@@ -21,9 +22,20 @@ export interface PageInfo {
   totalCount: number;
 }
 
+export interface INewPaginate {
+  currentPage: string | number;
+  nextPageUrl: string | null;
+  prevPageUrl: string | null;
+  perPage: number;
+  total: number;
+  lastPageUrl: string | null;
+  firstPageUrl: string | null;
+}
+
 export interface PaginatedResult {
-  items: any[];
+  data: any[];
   pageInfo: PageInfo;
+  newPageInfo: INewPaginate;
 }
 
 @Injectable()
@@ -32,13 +44,11 @@ export class PaginationService {
 
   constructor() {}
 
-  async paginate(options: PaginationOptions): Promise<PaginatedResult> {
-    const { page, pageSize, filter, order, repository } = options;
+  async paginate<T>(options: PaginationOptions): Promise<PaginatedResult> {
+    const { page, pageSize, filter, order, repository, routeName } = options;
     this.repository = repository;
 
     const queryBuilder = this.createPaginationQueryBuilder(page, pageSize);
-
-    // console.log(filter);
 
     if (filter) {
       this.applyWhereConditions(queryBuilder, filter);
@@ -53,7 +63,28 @@ export class PaginationService {
     const [items, totalCount] = await queryBuilder.getManyAndCount();
     const pageInfo = this.calculatePageInfo(page, pageSize, totalCount);
 
-    return { items, pageInfo };
+    const newPage = +page;
+    const nextPageUrl = pageInfo.hasNextPage
+      ? `${routeName}?page=${newPage + 1}&pageSize=${pageSize}`
+      : null;
+    const prevPageUrl =
+      pageInfo.hasPreviousPage && newPage > 1
+        ? `${routeName}?page=${newPage - 1}&pageSize=${pageSize}`
+        : null;
+
+    return {
+      data: items,
+      pageInfo,
+      newPageInfo: {
+        currentPage: pageInfo.currentPage,
+        nextPageUrl,
+        prevPageUrl,
+        perPage: pageSize,
+        total: totalCount,
+        lastPageUrl: `${routeName}?page=${pageInfo.totalPages}&pageSize=${pageSize}`,
+        firstPageUrl: `${routeName}?page=1&pageSize=${pageSize}`,
+      },
+    };
   }
 
   private createPaginationQueryBuilder(
@@ -71,12 +102,10 @@ export class PaginationService {
   ): void {
     Object.entries(where).forEach(([key, value]) => {
       if (typeof value === 'string') {
-        // For string columns, use LIKE for partial matches
         queryBuilder.andWhere(`item.${key} LIKE :${key}`, {
           [key]: `%${value}%`,
         });
       } else {
-        // For non-string columns, use exact match
         queryBuilder.andWhere(`item.${key} = :${key}`, { [key]: value });
       }
     });

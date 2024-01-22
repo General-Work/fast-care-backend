@@ -8,6 +8,7 @@ import {
   Delete,
   Query,
   UseGuards,
+  Req,
 } from '@nestjs/common';
 import { CallCommentCategoriesService } from './call-comment-categories.service';
 import { CreateCallCommentCategoryDto } from './dto/create-call-comment-category.dto';
@@ -32,11 +33,11 @@ export class CallCommentCategoriesController {
   @ApiResponse({ status: 400, description: 'Bad Request' })
   create(
     @Body() createCallCommentCategoryDto: CreateCallCommentCategoryDto,
-    createdBy: string,
+    @Req() req,
   ) {
     return this.callCommentCategoriesService.create(
       createCallCommentCategoryDto,
-      createdBy,
+      req.userDetails.user,
     );
   }
 
@@ -82,7 +83,10 @@ export class CallCommentCategoriesController {
     @Query('name') query: string,
     @Query('orderByName') name: OrderDirection,
     @Query('orderByDateCreated') createdAt: OrderDirection,
+
+    @Req() req,
   ) {
+    const routeName = `${req.protocol}://${req.get('host')}${req.path}`;
     const options = {
       page,
       pageSize,
@@ -91,6 +95,7 @@ export class CallCommentCategoriesController {
         { column: 'name', direction: name },
         { column: 'createdAt', direction: createdAt },
       ],
+      routeName,
     };
 
     try {
@@ -111,12 +116,12 @@ export class CallCommentCategoriesController {
   update(
     @Param('id') id: string,
     @Body() updateCallCommentCategoryDto: UpdateCallCommentCategoryDto,
-    updatedBy: string,
+    @Req() req,
   ) {
     return this.callCommentCategoriesService.update(
       +id,
       updateCallCommentCategoryDto,
-      updatedBy,
+      req.userDetails.user,
     );
   }
 

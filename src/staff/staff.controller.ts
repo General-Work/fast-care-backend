@@ -8,6 +8,7 @@ import {
   Delete,
   Query,
   UseGuards,
+  Req,
 } from '@nestjs/common';
 import { StaffService } from './staff.service';
 import { CreateStaffDto } from './dto/create-staff.dto';
@@ -28,8 +29,8 @@ export class StaffController {
     description: 'Staff has been successfully created.',
   })
   @ApiResponse({ status: 400, description: 'Bad Request' })
-  create(@Body() createStaffDto: CreateStaffDto, createdBy: string) {
-    return this.staffService.create(createStaffDto, createdBy);
+  create(@Body() createStaffDto: CreateStaffDto, @Req() req) {
+    return this.staffService.create(createStaffDto, req.userDetails.user);
   }
 
   @Get()
@@ -103,7 +104,10 @@ export class StaffController {
     @Query('orderByStaffCode') sortStaffCode: OrderDirection,
 
     @Query('orderByDateCreated') createdAt: OrderDirection,
+    @Req() req,
   ) {
+    const routeName = `${req.protocol}://${req.get('host')}${req.path}`;
+
     const options = {
       page,
       pageSize,
@@ -114,6 +118,7 @@ export class StaffController {
         { column: 'staffCode', direction: sortStaffCode },
         { column: 'createdAt', direction: createdAt },
       ],
+      routeName,
     };
 
     try {
@@ -134,9 +139,9 @@ export class StaffController {
   update(
     @Param('id') id: string,
     @Body() updateStaffDto: UpdateStaffDto,
-    updatedBy: string,
+    @Req() req,
   ) {
-    return this.staffService.update(+id, updateStaffDto, updatedBy);
+    return this.staffService.update(+id, updateStaffDto, req.userDetails.user);
   }
 
   @Delete(':id')
