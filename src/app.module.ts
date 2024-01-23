@@ -16,6 +16,7 @@ import { ExtractUserMiddleware } from './middlewares/extract-user.middleware';
 import { IndividualSubscribersModule } from './individual-subscribers/individual-subscribers.module';
 import { PaymentsModule } from './payments/payments.module';
 import { FamilySubscribersModule } from './family-subscribers/family-subscribers.module';
+import { AppController } from './app.controller';
 
 @Module({
   imports: [
@@ -35,7 +36,7 @@ import { FamilySubscribersModule } from './family-subscribers/family-subscribers
     PaymentsModule,
     FamilySubscribersModule,
   ],
-  controllers: [],
+  controllers: [AppController],
   providers: [ExtractUserMiddleware],
 })
 export class AppModule implements NestModule {
