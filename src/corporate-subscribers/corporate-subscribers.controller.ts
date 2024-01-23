@@ -10,24 +10,24 @@ import {
   Req,
   Query,
 } from '@nestjs/common';
-import { FamilySubscribersService } from './family-subscribers.service';
-import { CreateFamilySubscriberDto } from './dto/create-family-subscriber.dto';
-import { UpdateFamilySubscriberDto } from './dto/update-family-subscriber.dto';
+import { CorporateSubscribersService } from './corporate-subscribers.service';
+import { CreateCorporateSubscriberDto } from './dto/create-corporate-subscriber.dto';
+import { UpdateCorporateSubscriberDto } from './dto/update-corporate-subscriber.dto';
 import { ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { JwtGuard } from 'src/auth/gurads/jwt-auth.guard';
 import { Request } from 'express';
 import { OrderDirection } from 'src/pagination/pagination.service';
-import { CreateFamilyBeneficiaryDto } from './dto/create-family-beneficiary.dto';
-import { UpdateFamilyBeneficiaryDto } from './dto/update-family-beneficiary.dto';
-import { CreateFamilyPackageDto } from './dto/create-family-package.dto';
-import { UpdateFamilyPackageDto } from './dto/update-family-package.dto';
+import { CreateCorporateBeneficiaryDto } from './dto/create-corporate-beneficiaries.dto';
+import { UpdateCorporateBeneficiaryDto } from './dto/update-corporate-beneficiary.dto';
+import { CreateCorporatePackageDto } from './dto/create-corporate-package.dto';
+import { UpdateCorporatePackageDto } from './dto/update-corporate-package.dto';
 
-@ApiTags('Family Subscribers')
+@ApiTags('Corporate Subscribers')
 @UseGuards(JwtGuard)
-@Controller('family-subscribers')
-export class FamilySubscribersController {
+@Controller('corporate-subscribers')
+export class CorporateSubscribersController {
   constructor(
-    private readonly familySubscribersService: FamilySubscribersService,
+    private readonly corporateSubscribersService: CorporateSubscribersService,
   ) {}
 
   @Post()
@@ -37,11 +37,11 @@ export class FamilySubscribersController {
   })
   @ApiResponse({ status: 400, description: 'Bad Request' })
   create(
-    @Body() createFamilySubscriberDto: CreateFamilySubscriberDto,
+    @Body() createCorporateSubscriberDto: CreateCorporateSubscriberDto,
     @Req() req: Request,
   ) {
-    return this.familySubscribersService.create(
-      createFamilySubscriberDto,
+    return this.corporateSubscribersService.create(
+      createCorporateSubscriberDto,
       req.userDetails.user,
       req.userDetails.staffDbId,
     );
@@ -61,10 +61,10 @@ export class FamilySubscribersController {
     description: 'Page size',
   })
   @ApiQuery({
-    name: 'familyMembershipID',
+    name: 'corporateMembershipID',
     required: false,
     type: String,
-    description: 'Search family membership ID',
+    description: 'Search corporate membership ID',
   })
   @ApiQuery({
     name: 'name',
@@ -97,13 +97,13 @@ export class FamilySubscribersController {
     const options = {
       page,
       pageSize,
-      filter: { familyMembershipID: query, name },
+      filter: { corporateMembershipID: query, name },
       order: [{ column: 'createdAt', direction: createdAt }],
       routeName,
     };
 
     try {
-      const result = await this.familySubscribersService.findAll(options);
+      const result = await this.corporateSubscribersService.findAll(options);
       return result;
     } catch (error) {
       // Handle errors or return appropriate HTTP responses
@@ -113,25 +113,25 @@ export class FamilySubscribersController {
 
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.familySubscribersService.findOneById(+id);
+    return this.corporateSubscribersService.findOneById(+id);
   }
 
   @Patch(':id')
   update(
     @Param('id') id: string,
-    @Body() updateFamilySubscriberDto: UpdateFamilySubscriberDto,
+    @Body() updateCorporateSubscriberDto: UpdateCorporateSubscriberDto,
     @Req() req: Request,
   ) {
-    return this.familySubscribersService.update(
+    return this.corporateSubscribersService.update(
       +id,
-      updateFamilySubscriberDto,
+      updateCorporateSubscriberDto,
       req.userDetails.user,
     );
   }
 
   @Delete(':id')
   remove(@Param('id') id: string) {
-    return this.familySubscribersService.remove(+id);
+    return this.corporateSubscribersService.remove(+id);
   }
 
   @Post('beneficiary')
@@ -141,10 +141,10 @@ export class FamilySubscribersController {
   })
   @ApiResponse({ status: 400, description: 'Bad Request' })
   createBeneficiary(
-    @Body() data: CreateFamilyBeneficiaryDto,
+    @Body() data: CreateCorporateBeneficiaryDto,
     @Req() req: Request,
   ) {
-    return this.familySubscribersService.createBeneficiary(
+    return this.corporateSubscribersService.createBeneficiary(
       data,
       req.userDetails.user,
     );
@@ -152,11 +152,11 @@ export class FamilySubscribersController {
 
   @Patch('beneficiary/:id')
   updateBeneficiary(
-    @Body() data: UpdateFamilyBeneficiaryDto,
+    @Body() data: UpdateCorporateBeneficiaryDto,
     @Req() req: Request,
     @Param('id') id: string,
   ) {
-    return this.familySubscribersService.updateBeneficiary(
+    return this.corporateSubscribersService.updateBeneficiary(
       +id,
       data,
       req.userDetails.user,
@@ -165,7 +165,7 @@ export class FamilySubscribersController {
 
   @Delete('beneficiary/:id')
   removeBeneficiary(@Param('id') id: string) {
-    return this.familySubscribersService.removeBeneficiary(+id);
+    return this.corporateSubscribersService.removeBeneficiary(+id);
   }
 
   @Get('beneficiaries/:id')
@@ -175,14 +175,14 @@ export class FamilySubscribersController {
   })
   @ApiResponse({ status: 500, description: 'Internal server error' })
   readBeneficaries(@Param('id') id: string) {
-    return this.familySubscribersService.findAllByFamilySubscriberBeneficiaries(
+    return this.corporateSubscribersService.findAllByCorporateSubscriberBeneficiaries(
       +id,
     );
   }
 
   @Post('package')
-  createPackage(@Body() data: CreateFamilyPackageDto, @Req() req: Request) {
-    return this.familySubscribersService.createPackage(
+  createPackage(@Body() data: CreateCorporatePackageDto, @Req() req: Request) {
+    return this.corporateSubscribersService.createPackage(
       data,
       req.userDetails.user,
     );
@@ -191,10 +191,10 @@ export class FamilySubscribersController {
   @Patch('package/:id')
   updatePackage(
     @Param('id') id: string,
-    @Body() data: UpdateFamilyPackageDto,
+    @Body() data: UpdateCorporatePackageDto,
     @Req() req: Request,
   ) {
-    return this.familySubscribersService.updatePackage(
+    return this.corporateSubscribersService.updatePackage(
       +id,
       data,
       req.userDetails.user,

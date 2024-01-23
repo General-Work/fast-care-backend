@@ -9,11 +9,11 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { FamilyPackage } from './family-package.entity';
-import { FamilyBeneficiaries } from './family-beneficiaries.entity';
+import { CorporatePackage } from './corporate-package.entity';
+import { CorporateBeneficiaries } from './corporate-beneficiaries.entity';
 
-@Entity('family_subscribers')
-export class FamilySubscriber {
+@Entity('corporate_subscribers')
+export class CorporateSubscriber {
   @PrimaryGeneratedColumn()
   id: number;
 
@@ -21,7 +21,10 @@ export class FamilySubscriber {
   name: string;
 
   @Column()
-  familyMembershipID: string;
+  idNumber: string;
+
+  @Column()
+  corporateMembershipID: string;
 
   @Column()
   address: string;
@@ -38,32 +41,32 @@ export class FamilySubscriber {
   @Column()
   principalPersonPhone: string;
 
-  @ManyToOne(() => Staff, (staff) => staff.familySubscribers, {
+  @ManyToOne(() => Staff, (staff) => staff.corporateSubscribers, {
     cascade: true,
     nullable: false,
   })
   agent: Staff;
 
   @OneToOne(
-    () => FamilyPackage,
-    (familyPackage) => familyPackage.familySubscriber,
+    () => CorporatePackage,
+    (familyPackage) => familyPackage.corporateSubscriber,
     {
       nullable: true,
       eager: true,
       cascade: true,
     },
   )
-  familyPackage: FamilyPackage;
+  corporatePackage: CorporatePackage;
 
   @OneToMany(
-    () => FamilyBeneficiaries,
-    (beneficiary) => beneficiary.familySubscriber,
+    () => CorporateBeneficiaries,
+    (beneficiary) => beneficiary.corporateSubscriber,
     {
       eager: true,
       cascade: true,
     },
   )
-  beneficiaries: FamilyBeneficiaries[];
+  beneficiaries: CorporateBeneficiaries[];
 
   @CreateDateColumn()
   createdAt: Date;

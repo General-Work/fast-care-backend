@@ -11,6 +11,8 @@ import {
 import { User } from 'src/users/entities/user.entity';
 import { IndividualSubscriber } from 'src/individual-subscribers/entities/individual-subscriber.entity';
 import { GENDER, IDTYPES, MARITALSTATUS, TITLE } from 'src/lib';
+import { FamilySubscriber } from 'src/family-subscribers/entities/family-subscriber.entity';
+import { CorporateSubscriber } from 'src/corporate-subscribers/entities/corporate-subscriber.entity';
 
 @Entity('staff')
 export class Staff {
@@ -79,4 +81,14 @@ export class Staff {
     onDelete: 'SET NULL',
   })
   individualSubscribers: IndividualSubscriber[];
+
+  @OneToMany(() => FamilySubscriber, (subscriber) => subscriber.agent, {
+    onDelete: 'SET NULL',
+  })
+  familySubscribers: FamilySubscriber[];
+
+  @OneToMany(() => CorporateSubscriber, (subscriber) => subscriber.agent, {
+    onDelete: 'SET NULL',
+  })
+  corporateSubscribers: CorporateSubscriber[];
 }
