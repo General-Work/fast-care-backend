@@ -10,6 +10,7 @@ import {
   ValidationArguments,
 } from 'class-validator';
 import {
+  DISCOUNT,
   FREQUENCY,
   GENDER,
   IDTYPES,
@@ -123,9 +124,9 @@ export class CreateIndividualSubscriberDto {
   frequency: FREQUENCY;
 
   @IsOptional()
-  @IsString({ message: 'Discount should be a string' })
-  @ApiProperty({ required: false })
-  discount: string;
+  @IsEnum(DISCOUNT)
+  @ApiProperty({ enum: DISCOUNT, example: DISCOUNT['0%'] })
+  discount: DISCOUNT;
 
   @IsOptional()
   @IsEnum(MOMONETWORK)

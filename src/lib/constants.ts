@@ -61,10 +61,19 @@ export enum MOMONETWORK {
   MTN = 'MTN',
   VODAFONE = 'VODAFONE',
   AIRTELTIGO = 'AIRTELTIGO',
-  None = ""
+  None = '',
 }
 
 export enum PAYMENTSTATUS {
   Paid = 'Paid',
   Unpaid = 'Unpaid',
+}
+
+export enum DISCOUNT {
+  '0%' = 0,
+  '5%' = 5,
+  '10%' = 10,
+  '15%' = 15,
+  '20%' = 20,
+  '25%' = 25,
 }

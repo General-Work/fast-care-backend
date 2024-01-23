@@ -13,6 +13,7 @@ import {
 } from 'typeorm';
 import { IndividualSubscriberPayment } from './individual-subscriber-payment.entity';
 import {
+  DISCOUNT,
   FREQUENCY,
   GENDER,
   IDTYPES,
@@ -90,7 +91,7 @@ export class IndividualSubscriber {
   frequency: FREQUENCY;
 
   @Column()
-  discount: string;
+  discount: DISCOUNT;
 
   @Column({ nullable: true })
   momoNetwork: MOMONETWORK;

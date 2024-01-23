@@ -15,6 +15,7 @@ import { AuthModule } from './auth/auth.module';
 import { ExtractUserMiddleware } from './middlewares/extract-user.middleware';
 import { IndividualSubscribersModule } from './individual-subscribers/individual-subscribers.module';
 import { PaymentsModule } from './payments/payments.module';
+import { FamilySubscribersModule } from './family-subscribers/family-subscribers.module';
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { PaymentsModule } from './payments/payments.module';
     AuthModule,
     IndividualSubscribersModule,
     PaymentsModule,
+    FamilySubscribersModule,
   ],
   controllers: [],
   providers: [ExtractUserMiddleware],

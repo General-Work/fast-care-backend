@@ -1,7 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { Repository, SelectQueryBuilder } from 'typeorm';
 
-export type OrderDirection = 'ASC' | 'DESC';
+export enum OrderDirection {
+  ASC = 'ASC',
+  DESC = 'DESC',
+}
 
 export type OrderBy = { column: string; direction: OrderDirection };
 

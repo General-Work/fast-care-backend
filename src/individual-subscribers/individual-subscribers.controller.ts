@@ -12,6 +12,7 @@ import {
   BadRequestException,
   Req,
   UseGuards,
+  Query,
 } from '@nestjs/common';
 import { IndividualSubscribersService } from './individual-subscribers.service';
 import { CreateIndividualSubscriberDto } from './dto/create-individual-subscriber.dto';
@@ -21,12 +22,14 @@ import {
   ApiBody,
   ApiConsumes,
   ApiOperation,
+  ApiQuery,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
 import { Multer } from 'multer';
 import { Response, Request } from 'express';
 import { JwtGuard } from 'src/auth/gurads/jwt-auth.guard';
+import { OrderDirection } from 'src/pagination/pagination.service';
 
 @ApiTags('Individual Subscribers')
 @UseGuards(JwtGuard)
@@ -68,18 +71,109 @@ export class IndividualSubscribersController {
       req.userDetails.user,
       req.userDetails.staffDbId,
     );
-
-    // const x = Buffer.from(pic, 'base64');
-    // // console.log(x)
-    // return {
-    //   receivedData: createIndividualSubscriberDto,
-    //   imageData: pic,
-    // };
   }
 
   @Get()
-  findAll() {
-    return this.individualSubscribersService.findAll();
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    type: Number,
+    description: 'Page number',
+  })
+  @ApiQuery({
+    name: 'pageSize',
+    required: false,
+    type: Number,
+    description: 'Page size',
+  })
+  @ApiQuery({
+    name: 'staffCode',
+    required: false,
+    type: String,
+    description: 'Search staff Code',
+  })
+  @ApiQuery({
+    name: 'lastName',
+    required: false,
+    type: String,
+    description: 'Search last Name',
+  })
+  @ApiQuery({
+    name: 'firstName',
+    required: false,
+    type: String,
+    description: 'Search first Name',
+  })
+  @ApiQuery({
+    name: 'orderByLastName',
+    required: false,
+    enum: OrderDirection,
+    example: OrderDirection.ASC,
+    description: 'Order by last name',
+  })
+  @ApiQuery({
+    name: 'orderByFirstName',
+    required: false,
+    enum: OrderDirection,
+    example: OrderDirection.ASC,
+    description: 'Order by first name',
+  })
+  @ApiQuery({
+    name: 'orderByMembershipID',
+    required: false,
+    enum: OrderDirection,
+    example: OrderDirection.ASC,
+    description: 'Order by membership ID code',
+  })
+  @ApiQuery({
+    name: 'orderByDateCreated',
+    required: false,
+    enum: OrderDirection,
+    example: OrderDirection.ASC,
+    description: 'Order by dateCreated',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Successful operation',
+  })
+  @ApiResponse({ status: 500, description: 'Internal server error' })
+  async findAll(
+    @Query('page') page: number,
+    @Query('pageSize') pageSize: number,
+    @Query('membershipID') query: string,
+    @Query('lastName') lastName: string,
+    @Query('firstName') firstName: string,
+    @Query('orderByLastName') sortLastName: OrderDirection,
+    @Query('orderByFirstName') sortFirstName: OrderDirection,
+    @Query('orderByMembershipID') sortMembershipID: OrderDirection,
+    @Query('orderByFacility') sortFacility: OrderDirection,
+
+    @Query('orderByDateCreated') createdAt: OrderDirection,
+    @Req() req,
+  ) {
+    const routeName = `${req.protocol}://${req.get('host')}${req.path}`;
+
+    const options = {
+      page,
+      pageSize,
+      filter: { membershipID: query, lastName, firstName },
+      order: [
+        { column: 'lastName', direction: sortLastName },
+        { column: 'firstName', direction: sortFirstName },
+        { column: 'membershipID', direction: sortMembershipID },
+        { column: 'createdAt', direction: createdAt },
+        { column: 'facility', direction: sortFacility },
+      ],
+      routeName,
+    };
+
+    try {
+      const result = await this.individualSubscribersService.findAll(options);
+      return result;
+    } catch (error) {
+      // Handle errors or return appropriate HTTP responses
+      return { error: error.message };
+    }
   }
 
   @Get(':id')
@@ -88,13 +182,23 @@ export class IndividualSubscribersController {
   }
 
   @Patch(':id')
+  @UseInterceptors(FileInterceptor('passportPicture'))
+  @ApiConsumes('multipart/form-data')
   update(
     @Param('id') id: string,
     @Body() updateIndividualSubscriberDto: UpdateIndividualSubscriberDto,
+    @UploadedFile() passportPicture: Multer.File,
+    @Req() req: Request,
   ) {
+    const pic = passportPicture
+      ? passportPicture.buffer.toString('base64')
+      : undefined;
+
     return this.individualSubscribersService.update(
       +id,
       updateIndividualSubscriberDto,
+      pic,
+      req.userDetails.user,
     );
   }
 

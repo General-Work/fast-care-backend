@@ -1,9 +1,18 @@
-import { ConflictException, HttpStatus, Injectable } from '@nestjs/common';
+import {
+  ConflictException,
+  HttpStatus,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { CreateIndividualSubscriberDto } from './dto/create-individual-subscriber.dto';
 import { UpdateIndividualSubscriberDto } from './dto/update-individual-subscriber.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { QueryFailedError, Repository } from 'typeorm';
-import { PaginationService } from 'src/pagination/pagination.service';
+import {
+  PaginatedResult,
+  PaginationOptions,
+  PaginationService,
+} from 'src/pagination/pagination.service';
 import { IndividualSubscriber } from './entities/individual-subscriber.entity';
 import { IndividualSubscriberPayment } from './entities/individual-subscriber-payment.entity';
 import { Staff } from 'src/staff/entities/staff.entity';
@@ -27,9 +36,6 @@ export class IndividualSubscribersService {
     createdBy: string,
     agent: number,
   ) {
-    // const staff = await this.staffRepository.findByID(agent);
-    // console.log(staff);
-
     const staff = new Staff();
     staff.id = agent;
 
@@ -110,19 +116,110 @@ export class IndividualSubscribersService {
     }
   }
 
-  findAll() {
-    return this.subscriberRepository.find();
+  async findAll(options: PaginationOptions): Promise<PaginatedResult> {
+    const { filter, order } = options;
+
+    const filters = [
+      { membershipID: filter?.membershipID },
+      { lastName: filter?.lastName },
+      { firstName: filter?.firstName },
+    ].filter((filter) => filter[Object.keys(filter)[0]]);
+
+    return this.paginationService.paginate({
+      ...options,
+      order: order.filter((o) => o.direction),
+      filter: filters.length
+        ? filters.reduce((acc, curr) => ({ ...acc, ...curr }))
+        : {},
+      repository: this.subscriberRepository,
+    });
   }
 
-  findOneById(id: number) {
-    return this.subscriberRepository.findOneBy({ id });
+  async findOneById(id: number) {
+    const subscriber = await this.subscriberRepository.findOneBy({ id });
+    if (!subscriber) {
+      throw new NotFoundException(`Subscriber with ID ${id} not found`);
+    }
+    return subscriber;
   }
 
-  update(
+  async update(
     id: number,
-    updateIndividualSubscriberDto: UpdateIndividualSubscriberDto,
-  ) {
-    return `This action updates a #${id} individualSubscriber`;
+    data: UpdateIndividualSubscriberDto,
+    passportPicture: string | undefined,
+    updatedBy: string,
+  ): Promise<{ message: string; status: number; success: boolean }> {
+    const subscriber = await this.findOneById(id);
+
+    subscriber.firstName = data.firstName ?? subscriber.firstName;
+    subscriber.otherNames = data.otherNames ?? subscriber.otherNames;
+    subscriber.lastName = data.lastName ?? subscriber.lastName;
+    subscriber.dateOfBirth = data.dateOfBirth ?? subscriber.dateOfBirth;
+    subscriber.gender = data.gender ?? subscriber.gender;
+    subscriber.occupation = data.occupation ?? subscriber.occupation;
+    subscriber.maritalStatus = data.maritalStatus ?? subscriber.maritalStatus;
+    subscriber.address = data.address ?? subscriber.address;
+    subscriber.gpsAddress = data.gpsAddress ?? subscriber.gpsAddress;
+    subscriber.phoneOne = data.phoneOne ?? subscriber.phoneOne;
+    subscriber.phoneTwo = data.phoneTwo ?? subscriber.phoneTwo;
+    subscriber.emergencyPerson =
+      data.emergencyPerson ?? subscriber.emergencyPerson;
+    subscriber.emergencyPersonPhone =
+      data.emergencyPersonPhone ?? subscriber.emergencyPersonPhone;
+    subscriber.hasNHIS = data.hasNHIS ?? subscriber.hasNHIS;
+    subscriber.NHISNumber = data.NHISNumber ?? subscriber.NHISNumber;
+    subscriber.paymentMode = data.paymentMode ?? subscriber.paymentMode;
+    subscriber.frequency = data.frequency ?? subscriber.frequency;
+    subscriber.discount = data.discount ?? subscriber.discount;
+    subscriber.momoNetwork = data.momoNetwork ?? subscriber.momoNetwork;
+    subscriber.momoNumber = data.momoNumber ?? subscriber.momoNumber;
+    subscriber.passportPicture = passportPicture ?? subscriber.passportPicture;
+    subscriber.updatedBy = updatedBy;
+
+    // Update relationships if necessary
+    if (data.facility) {
+      subscriber.facility.id = +data.facility;
+    }
+    if (data.group) {
+      subscriber.group.id = +data.group;
+    }
+    if (data.package) {
+      subscriber.package.id = +data.package;
+    }
+
+    try {
+      await this.subscriberRepository.save(subscriber);
+
+      const payment = await this.subscriberPaymentRepository.findOne({
+        where: { subscriber: subscriber },
+      });
+
+      if (!payment) {
+        throw new NotFoundException(
+          `Payment not found for FamilyPackage with ID ${id}.`,
+        );
+      }
+
+      payment.confirmed = data.paymentMode === PAYMENTMODE.MOMO ? true : false;
+      payment.confirmedBy =
+        data.paymentMode === PAYMENTMODE.MOMO ? data.momoNetwork : '';
+      payment.paymentStatus =
+        data.paymentMode === PAYMENTMODE.MOMO
+          ? PAYMENTSTATUS.Paid
+          : PAYMENTSTATUS.Unpaid;
+
+      payment.updatedBy = updatedBy;
+
+      await this.subscriberPaymentRepository.save(payment);
+
+      return {
+        message: 'Subscriber has been successfully updated.',
+        status: HttpStatus.OK,
+        success: true,
+      };
+    } catch (error) {
+      throw error; // Handle the error appropriately, e.g., log it or rethrow it
+    }
   }
 
   async remove(id: number) {
