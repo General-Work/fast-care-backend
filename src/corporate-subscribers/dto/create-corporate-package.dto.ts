@@ -9,10 +9,10 @@ import {
 import { DISCOUNT, FREQUENCY, MOMONETWORK, PAYMENTMODE } from 'src/lib';
 
 export class CreateCorporatePackageDto {
-  @IsNotEmpty({ message: 'Family can not be null' })
+  @IsNotEmpty({ message: 'Corporate can not be null' })
   @IsNumber()
   @ApiProperty()
-  familyId: number;
+  corporateId: number;
 
   @IsNotEmpty({ message: "Discount can't be null" })
   @IsEnum(DISCOUNT)

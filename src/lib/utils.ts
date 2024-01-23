@@ -1,4 +1,6 @@
 import * as bcryt from 'bcrypt';
+import { SelectQueryBuilder } from 'typeorm';
+
 export function generateDefaultPassword(): string {
   const length = 8; // Length of the default password
   const charset =
@@ -20,4 +22,22 @@ export function encodedPassword(rawPassword: string) {
 
 export function comparePasswords(rawPassword: string, hash: string) {
   return bcryt.compareSync(rawPassword, hash);
+}
+
+
+export class QueryBuilderHelper {
+  static joinRelations<T>(
+    queryBuilder: SelectQueryBuilder<T>,
+    relations: { name: string; entity: any; condition: string }[],
+  ): SelectQueryBuilder<T> {
+    relations.forEach(({ name, entity, condition }) => {
+      if (condition) {
+        queryBuilder.leftJoinAndMapMany(name, entity, name, condition);
+      } else {
+        queryBuilder.leftJoinAndSelect(`item.${name}`, name);
+      }
+    });
+
+    return queryBuilder;
+  }
 }

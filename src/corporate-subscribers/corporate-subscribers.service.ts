@@ -19,7 +19,6 @@ import {
 } from 'src/pagination/pagination.service';
 import { Staff } from 'src/staff/entities/staff.entity';
 import { CreateCorporateBeneficiaryDto } from './dto/create-corporate-beneficiaries.dto';
-import dayjs from 'dayjs';
 import { Package } from 'src/packages/entities/package.entity';
 import { Facility } from 'src/facilities/entities/facility.entity';
 import { UpdateCorporateBeneficiaryDto } from './dto/update-corporate-beneficiary.dto';
@@ -94,7 +93,27 @@ export class CorporateSubscribersService {
       filter: filters.length
         ? filters.reduce((acc, curr) => ({ ...acc, ...curr }))
         : {},
-      repository: this.corporateRepository,
+      repository: this.corporateRepository
+        .createQueryBuilder('item')
+        .leftJoinAndSelect('item.corporatePackage', 'corporatePackage')
+        .leftJoinAndMapMany(
+          'item.beneficiaries',
+          CorporateBeneficiaries,
+          'beneficiary',
+          'beneficiary.corporateSubscriber = item.id',
+        )
+        .leftJoinAndMapOne(
+          'beneficiary.package',
+          Package,
+          'package',
+          'package.id = beneficiary.package',
+        )
+        .leftJoinAndMapOne(
+          'beneficiary.facility',
+          Facility,
+          'facility',
+          'facility.id = beneficiary.facility',
+        ),
     });
   }
 
@@ -176,7 +195,19 @@ export class CorporateSubscribersService {
   ) {
     const corporateSubscriber = await this.findOneById(createDto.corporateId);
 
-    const age = dayjs().diff(dayjs(createDto.dateOfBirth), 'year');
+    const currentDate = new Date();
+    const dateOfBirth = new Date(createDto.dateOfBirth);
+
+    let age = currentDate.getFullYear() - dateOfBirth.getFullYear();
+
+    // Check if the birthday has occurred this year
+    if (
+      currentDate.getMonth() < dateOfBirth.getMonth() ||
+      (currentDate.getMonth() === dateOfBirth.getMonth() &&
+        currentDate.getDate() < dateOfBirth.getDate())
+    ) {
+      age--;
+    }
 
     if (age > 23) {
       throw new ConflictException(
@@ -199,7 +230,15 @@ export class CorporateSubscribersService {
     beneficiary.corporateSubscriber = corporateSubscriber;
     beneficiary.createdBy = createdBy;
 
-    return this.corporateBeneficiayRepository.save(beneficiary);
+    try {
+      await this.corporateBeneficiayRepository.save(beneficiary);
+      return {
+        message: 'Succesfully created Beneficiary',
+        success: true,
+      };
+    } catch (error) {
+      throw error;
+    }
   }
 
   async updateBeneficiary(
@@ -222,7 +261,15 @@ export class CorporateSubscribersService {
       beneficiary.package.id = updateDto.package;
     }
 
-    return this.corporateBeneficiayRepository.save(beneficiary);
+    try {
+      await this.corporateBeneficiayRepository.save(beneficiary);
+      return {
+        message: 'Succesfully updated Beneficiary',
+        success: true,
+      };
+    } catch (error) {
+      throw error;
+    }
   }
 
   async findAllByCorporateSubscriberBeneficiaries(id: number) {
@@ -231,7 +278,7 @@ export class CorporateSubscribersService {
   }
 
   async createPackage(data: CreateCorporatePackageDto, createdBy: string) {
-    const corporateSubscriber = await this.findOneById(data.familyId);
+    const corporateSubscriber = await this.findOneById(data.corporateId);
 
     const newPackage = new CorporatePackage();
     newPackage.amountToDebit = data.amountToDebit;
@@ -313,7 +360,7 @@ export class CorporateSubscribersService {
 
       if (!payment) {
         throw new NotFoundException(
-          `Payment not found for FamilyPackage with ID ${packageId}.`,
+          `Payment not found for Corporate Package with ID ${packageId}.`,
         );
       }
 
@@ -330,7 +377,7 @@ export class CorporateSubscribersService {
       await this.corporateSubscriberPaymentRepository.save(payment);
 
       return {
-        message: 'Family Package has been successfully updated.',
+        message: 'Corporate Package has been successfully updated.',
         status: HttpStatus.OK,
         success: true,
       };

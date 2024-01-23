@@ -5,12 +5,13 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { IndividualSubscriberPayment } from 'src/individual-subscribers/entities/individual-subscriber-payment.entity';
 import { Repository } from 'typeorm';
 import { PaginationService } from 'src/pagination/pagination.service';
+import { CorporateSubscriberPayment } from 'src/corporate-subscribers/entities/corporate-payment.entity';
 
 @Injectable()
 export class PaymentsService {
   constructor(
-    @InjectRepository(IndividualSubscriberPayment)
-    private readonly paymentRepository: Repository<IndividualSubscriberPayment>,
+    @InjectRepository(CorporateSubscriberPayment)
+    private readonly paymentRepository: Repository<CorporateSubscriberPayment>,
     private readonly paginationService: PaginationService,
   ) {}
   create(createPaymentDto: CreatePaymentDto) {
@@ -18,7 +19,7 @@ export class PaymentsService {
   }
 
   findAll() {
-    return this.paymentRepository.find()
+    return this.paymentRepository.find();
   }
 
   findOne(id: number) {

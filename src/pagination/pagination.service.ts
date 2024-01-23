@@ -13,8 +13,9 @@ export interface PaginationOptions {
   pageSize?: number;
   filter?: Record<string, any>;
   order?: OrderBy[];
-  repository?: Repository<any>;
+  repository?: Repository<any> | SelectQueryBuilder<any>; // Accept both Repository and SelectQueryBuilder
   routeName: string;
+  relations?: string[]; // Add relations field
 }
 
 export interface PageInfo {
@@ -43,15 +44,18 @@ export interface PaginatedResult {
 
 @Injectable()
 export class PaginationService {
-  private repository: Repository<any>;
-
-  constructor() {}
-
   async paginate<T>(options: PaginationOptions): Promise<PaginatedResult> {
-    const { page, pageSize, filter, order, repository, routeName } = options;
-    this.repository = repository;
+    const { page, pageSize, filter, order, repository, routeName, relations } = options;
 
-    const queryBuilder = this.createPaginationQueryBuilder(page, pageSize);
+    let queryBuilder: SelectQueryBuilder<T>;
+
+    if (repository instanceof Repository) {
+      queryBuilder = this.createPaginationQueryBuilder(page, pageSize, repository);
+    } else if (repository instanceof SelectQueryBuilder) {
+      queryBuilder = repository;
+    } else {
+      throw new Error('Invalid repository type. Must be Repository or SelectQueryBuilder.');
+    }
 
     if (filter) {
       this.applyWhereConditions(queryBuilder, filter);
@@ -61,6 +65,10 @@ export class PaginationService {
       this.applyOrderConditions(queryBuilder, order);
     } else {
       queryBuilder.orderBy('item.updatedAt', 'ASC');
+    }
+
+    if (relations) {
+      this.applyRelations(queryBuilder, relations);
     }
 
     const [items, totalCount] = await queryBuilder.getManyAndCount();
@@ -90,13 +98,13 @@ export class PaginationService {
     };
   }
 
-  private createPaginationQueryBuilder(
+  private createPaginationQueryBuilder<T>(
     page: number = 1,
     pageSize: number = 10,
-  ): SelectQueryBuilder<any> {
+    repository: Repository<T>,
+  ): SelectQueryBuilder<T> {
     const skip = (page - 1) * pageSize;
-
-    return this.repository.createQueryBuilder('item').skip(skip).take(pageSize);
+    return repository.createQueryBuilder('item').skip(skip).take(pageSize);
   }
 
   private applyWhereConditions(
@@ -121,6 +129,21 @@ export class PaginationService {
     order.forEach(({ column, direction }) => {
       queryBuilder.addOrderBy(`item.${column}`, direction);
     });
+  }
+
+  private applyRelations<T>(
+    queryBuilder: SelectQueryBuilder<T>,
+    relations: string[],
+  ): SelectQueryBuilder<T> {
+    relations.forEach((relation) => {
+      const nestedRelations = relation.split('.'); // Split nested relations
+      nestedRelations.reduce((builder, rel) => {
+        // For each nested relation, left join and select
+        return builder.leftJoinAndSelect(`item.${rel}`, rel);
+      }, queryBuilder);
+    });
+
+    return queryBuilder;
   }
 
   private calculatePageInfo(

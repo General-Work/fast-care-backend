@@ -20,7 +20,6 @@ import { CreateFamilyBeneficiaryDto } from './dto/create-family-beneficiary.dto'
 import { Package } from 'src/packages/entities/package.entity';
 import { Facility } from 'src/facilities/entities/facility.entity';
 import { UpdateFamilyBeneficiaryDto } from './dto/update-family-beneficiary.dto';
-import dayjs from 'dayjs';
 import { CreateFamilyPackageDto } from './dto/create-family-package.dto';
 import { FamilyPackage } from './entities/family-package.entity';
 import { FamilySubscriberPayment } from './entities/family-subscriber-payment.entity';
@@ -79,7 +78,7 @@ export class FamilySubscribersService {
     }
   }
 
-  async findAll(options: PaginationOptions): Promise<PaginatedResult> {
+  async findAll(options: PaginationOptions) {
     const { filter, order } = options;
 
     const filters = [
@@ -87,13 +86,34 @@ export class FamilySubscribersService {
       { name: filter?.name },
     ].filter((filter) => filter[Object.keys(filter)[0]]);
 
+    // return ;
     return this.paginationService.paginate({
       ...options,
       order: order.filter((o) => o.direction),
       filter: filters.length
         ? filters.reduce((acc, curr) => ({ ...acc, ...curr }))
         : {},
-      repository: this.familyRepository,
+      repository: this.familyRepository
+        .createQueryBuilder('item')
+        .leftJoinAndSelect('item.familyPackage', 'familyPackage')
+        .leftJoinAndMapMany(
+          'item.beneficiaries',
+          FamilyBeneficiaries,
+          'beneficiary',
+          'beneficiary.familySubscriber = item.id',
+        )
+        .leftJoinAndMapOne(
+          'beneficiary.package',
+          Package,
+          'package',
+          'package.id = beneficiary.package',
+        )
+        .leftJoinAndMapOne(
+          'beneficiary.facility',
+          Facility,
+          'facility',
+          'facility.id = beneficiary.facility',
+        ),
     });
   }
 
@@ -169,7 +189,19 @@ export class FamilySubscribersService {
   ) {
     const familySubscriber = await this.findOneById(createDto.familyId);
 
-    const age = dayjs().diff(dayjs(createDto.dateOfBirth), 'year');
+    const currentDate = new Date();
+    const dateOfBirth = new Date(createDto.dateOfBirth);
+
+    let age = currentDate.getFullYear() - dateOfBirth.getFullYear();
+
+    // Check if the birthday has occurred this year
+    if (
+      currentDate.getMonth() < dateOfBirth.getMonth() ||
+      (currentDate.getMonth() === dateOfBirth.getMonth() &&
+        currentDate.getDate() < dateOfBirth.getDate())
+    ) {
+      age--;
+    }
 
     if (age > 23) {
       throw new ConflictException(
@@ -192,7 +224,15 @@ export class FamilySubscribersService {
     beneficiary.familySubscriber = familySubscriber;
     beneficiary.createdBy = createdBy;
 
-    return this.familyBeneficiayRepository.save(beneficiary);
+    try {
+      await this.familyBeneficiayRepository.save(beneficiary);
+      return {
+        message: 'Succesfully created Beneficiary',
+        success: true,
+      };
+    } catch (error) {
+      throw error;
+    }
   }
 
   async updateBeneficiary(
@@ -215,7 +255,15 @@ export class FamilySubscribersService {
       beneficiary.package.id = updateDto.package;
     }
 
-    return this.familyBeneficiayRepository.save(beneficiary);
+    try {
+      await this.familyBeneficiayRepository.save(beneficiary);
+      return {
+        message: 'Succesfully updated Beneficiary',
+        success: true,
+      };
+    } catch (error) {
+      throw error;
+    }
   }
 
   async remove(id: number) {

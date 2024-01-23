@@ -1,3 +1,6 @@
+import { CorporateBeneficiaries } from 'src/corporate-subscribers/entities/corporate-beneficiaries.entity';
+import { FamilyBeneficiaries } from 'src/family-subscribers/entities/family-beneficiaries.entity';
+import { FamilySubscriber } from 'src/family-subscribers/entities/family-subscriber.entity';
 import { IndividualSubscriber } from 'src/individual-subscribers/entities/individual-subscriber.entity';
 import { User } from 'src/users/entities/user.entity';
 import {
@@ -31,6 +34,12 @@ export class Facility {
 
   @OneToMany(() => IndividualSubscriber, (subscriber) => subscriber.facility)
   subscribers: IndividualSubscriber[];
+
+  @OneToMany(() => FamilyBeneficiaries, (subscriber) => subscriber.facility)
+  familyBeneficiaries: FamilyBeneficiaries[];
+
+  @OneToMany(() => CorporateBeneficiaries, (subscriber) => subscriber.facility)
+  corporateBeneficiaries: CorporateBeneficiaries[];
 
   @CreateDateColumn()
   createdAt: Date;

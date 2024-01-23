@@ -8,7 +8,6 @@ import {
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { FamilySubscriber } from './family-subscriber.entity';
-import { FamilyPackage } from './family-package.entity';
 
 @Entity('family_beneficiaries')
 export class FamilyBeneficiaries {
@@ -24,16 +23,25 @@ export class FamilyBeneficiaries {
   @Column()
   contact: string;
 
-  @ManyToOne(() => Facility, { eager: true, nullable: false })
+  @ManyToOne(() => Facility, (facility) => facility.familyBeneficiaries, {
+    eager: true,
+    nullable: false,
+  })
+  @JoinColumn({ name: 'facilityId' })
   facility: Facility;
 
-  @ManyToOne(() => Package, { eager: true, nullable: false })
+  @ManyToOne(() => Package, (newPackage) => newPackage.familyBeneficiaries, {
+    eager: true,
+    nullable: false,
+  })
+  @JoinColumn({ name: 'packageId' })
   package: Package;
 
   @ManyToOne(
     () => FamilySubscriber,
     (familySubscriber) => familySubscriber.beneficiaries,
     {
+      onDelete: 'CASCADE',
       nullable: false,
     },
   )
