@@ -124,7 +124,7 @@ export class CreateIndividualSubscriberDto {
   frequency: FREQUENCY;
 
   @IsOptional()
-  @IsEnum(DISCOUNT)
+  // @IsEnum(DISCOUNT)
   @ApiProperty({ enum: DISCOUNT, example: DISCOUNT['0%'] })
   discount: DISCOUNT;
 

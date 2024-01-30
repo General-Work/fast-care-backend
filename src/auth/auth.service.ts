@@ -28,8 +28,9 @@ export class AuthService {
   }
 
   async login(user: User) {
+    const { facility, staff, ...others } = user;
     const payload = {
-      username: user.username,
+      username: others.username,
       firstName: user.staff.firstName,
       lastName: user.staff.lastName,
       otherNames: user.staff.otherNames,
@@ -37,6 +38,8 @@ export class AuthService {
       staffDbId: user.staff.id,
       staffCode: user.staff.staffCode,
       roleId: user.role.id,
+      // role: user.role, 
+
       sub: {
         name: `${user.staff.firstName} ${user.staff.otherNames ?? ''} ${
           user.staff.lastName
@@ -44,7 +47,7 @@ export class AuthService {
       },
     };
     return {
-      ...user,
+      ...others,
       accessToken: this.jwtService.sign(payload),
       refreshToken: this.jwtService.sign(payload, { expiresIn: '1d' }),
     };
@@ -53,6 +56,7 @@ export class AuthService {
   async refreshToken(user: User) {
     // console.log(user);
     const data = await this.userService.findOneWithUsername(user.username);
+    // const { facility, staff, ...others } = data;
     const payload = {
       username: data.username,
       firstName: data.staff.firstName,
