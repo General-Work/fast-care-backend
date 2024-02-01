@@ -25,6 +25,7 @@ import { UpdateCorporateBeneficiaryDto } from './dto/update-corporate-beneficiar
 import { CreateCorporatePackageDto } from './dto/create-corporate-package.dto';
 import { PAYMENTMODE, PAYMENTSTATUS } from 'src/lib';
 import { UpdateCorporatePackageDto } from './dto/update-corporate-package.dto';
+import { Bank } from 'src/bank/entities/bank.entity';
 
 export enum CorporateSort {
   id_asc = 'id_asc',
@@ -307,6 +308,14 @@ export class CorporateSubscribersService {
     newPackage.momoNumber = data.momoNumber;
     newPackage.paymentMode = data.paymentMode;
     newPackage.corporateSubscriber = corporateSubscriber;
+    newPackage.CAGDStaffID = data.CAGDStaffID;
+    newPackage.accountNumber = data.accountNumber;
+    newPackage.chequeNumber = data.chequeNumber;
+    if (data.bank) {
+      const bank = new Bank();
+      bank.id = data.bank;
+      newPackage.bank = bank;
+    }
 
     try {
       await this.corporatePackageRepository.save(newPackage);
@@ -360,21 +369,39 @@ export class CorporateSubscribersService {
   ) {
     const existingPackage = await this.findPackageById(packageId);
 
-    // Update properties based on your requirements
-    existingPackage.amountToDebit = data.amountToDebit;
-    existingPackage.discount = data.discount;
-    existingPackage.frequency = data.frequency;
-    existingPackage.momoNetwork = data.momoNetwork;
-    existingPackage.momoNumber = data.momoNumber;
-    existingPackage.paymentMode = data.paymentMode;
+    existingPackage.amountToDebit =
+      data.amountToDebit ?? existingPackage.amountToDebit;
+    existingPackage.discount = data.discount ?? existingPackage.discount;
+    existingPackage.frequency = data.frequency ?? existingPackage.frequency;
+    existingPackage.momoNetwork =
+      data.momoNetwork ?? existingPackage.momoNetwork;
+    existingPackage.momoNumber = data.momoNumber ?? existingPackage.momoNumber;
+    existingPackage.paymentMode =
+      data.paymentMode ?? existingPackage.paymentMode;
+
+    existingPackage.CAGDStaffID =
+      data.CAGDStaffID ?? existingPackage.CAGDStaffID;
+    existingPackage.accountNumber =
+      data.accountNumber ?? existingPackage.accountNumber;
+    existingPackage.chequeNumber =
+      data.chequeNumber ?? existingPackage.chequeNumber;
+    if (data.bank) {
+      const bank = new Bank();
+      bank.id = data.bank;
+      existingPackage.bank = bank;
+    }
 
     try {
       await this.corporatePackageRepository.save(existingPackage);
 
       // Update associated payment
-      const payment = await this.corporateSubscriberPaymentRepository.findOne({
-        where: { corporatePackage: existingPackage },
-      });
+      const payment = await this.corporateSubscriberPaymentRepository
+        .createQueryBuilder('payment')
+        .leftJoinAndSelect('payment.corporatePackage', 'corporatePackage')
+        .where('corporatePackage.id = :corporatePackageId', {
+          corporatePackageId: existingPackage.id,
+        })
+        .getOne();
 
       if (!payment) {
         throw new NotFoundException(
@@ -402,6 +429,24 @@ export class CorporateSubscribersService {
     } catch (error) {
       throw error;
     }
+  }
+
+  async findFamilyPacakge(id: number) {
+    const payment = await this.corporatePackageRepository
+      .createQueryBuilder('item')
+      .leftJoinAndSelect('item.corporateSubscriber', 'corporateSubscriber')
+      .where('corporateSubscriber.id = :corporateSubscriberId', {
+        corporateSubscriberId: id,
+      })
+      .getOne();
+
+    if (!payment) {
+      throw new NotFoundException(
+        `Package for Corporate with ID ${id} not found.`,
+      );
+    }
+
+    return payment;
   }
 
   private async generateStaffCode(): Promise<string> {

@@ -39,6 +39,8 @@ export enum PAYMENTMODE {
   Cash = 'Cash',
   MOMO = 'MOMO',
   Cheque = 'Cheque',
+  StandingOrder = 'Standing Order',
+  CAGD = 'CAGD',
 }
 
 export enum FREQUENCY {

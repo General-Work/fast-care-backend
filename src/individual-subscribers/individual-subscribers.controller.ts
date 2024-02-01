@@ -31,10 +31,10 @@ import {
 import { Multer } from 'multer';
 import { Request } from 'express';
 import { JwtGuard } from 'src/auth/gurads/jwt-auth.guard';
-import { extractColumnAndDirection } from 'src/lib';
+import { convertFileToBase64, extractColumnAndDirection } from 'src/lib';
 
 @ApiTags('Individual Subscribers')
-@UseGuards(JwtGuard)
+// @UseGuards(JwtGuard)
 @Controller('individual-subscribers')
 export class IndividualSubscribersController {
   constructor(
@@ -63,13 +63,13 @@ export class IndividualSubscribersController {
       throw new BadRequestException('Uploaded file should be an image.');
     }
 
-    const pic = passportPicture
-      ? passportPicture.buffer.toString('base64')
+    const file = passportPicture
+      ? convertFileToBase64(passportPicture)
       : undefined;
 
     return this.individualSubscribersService.create(
       createIndividualSubscriberDto,
-      pic,
+      file,
       req.userDetails.user,
       req.userDetails.staffDbId,
     );
@@ -151,14 +151,14 @@ export class IndividualSubscribersController {
     @UploadedFile() passportPicture: Multer.File,
     @Req() req: Request,
   ) {
-    const pic = passportPicture
-      ? passportPicture.buffer.toString('base64')
+    const file = passportPicture
+      ? convertFileToBase64(passportPicture)
       : undefined;
 
     return this.individualSubscribersService.update(
       +id,
       updateIndividualSubscriberDto,
-      pic,
+      file,
       req.userDetails.user,
     );
   }

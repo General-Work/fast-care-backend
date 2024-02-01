@@ -1,5 +1,6 @@
 import * as bcryt from 'bcrypt';
 import { SelectQueryBuilder } from 'typeorm';
+import { Multer } from 'multer';
 
 export function generateDefaultPassword(): string {
   const length = 8; // Length of the default password
@@ -52,4 +53,8 @@ export function extractColumnAndDirection(enumValue: string): {
   }
 
   return { column, direction: direction.toUpperCase() };
+}
+
+export function convertFileToBase64(file: Multer.File) {
+  return `data:${file.mimetype}:base64,${file.buffer.toString('base64')}`;
 }

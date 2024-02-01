@@ -20,6 +20,7 @@ import { Facility } from 'src/facilities/entities/facility.entity';
 import { Group } from 'src/groups/entities/group.entity';
 import { Package } from 'src/packages/entities/package.entity';
 import { PAYMENTMODE, PAYMENTSTATUS } from 'src/lib';
+import { Bank } from 'src/bank/entities/bank.entity';
 
 export enum IndividualSort {
   id_asc = 'id_asc',
@@ -103,10 +104,20 @@ export class IndividualSubscribersService {
     subscriber.occupation = data.occupation;
     subscriber.otherNames = data.otherNames ?? '';
     subscriber.package = newPackage;
+
+    subscriber.CAGDStaffID = data.CAGDStaffID;
+    subscriber.chequeNumber = data.chequeNumber;
+    subscriber.accountNumber = data.accountNumber;
     subscriber.passportPicture = passportPicture;
     subscriber.paymentMode = data.paymentMode;
     subscriber.phoneOne = data.phoneOne;
     subscriber.phoneTwo = data.phoneTwo ?? '';
+
+    if (data.bank) {
+      const bank = new Bank();
+      bank.id = +data.bank;
+      subscriber.bank = bank;
+    }
 
     try {
       await this.subscriberRepository.save(subscriber);
@@ -143,7 +154,7 @@ export class IndividualSubscribersService {
     //   { firstName: filter?.firstName },
     // ].filter((filter) => filter[Object.keys(filter)[0]]);
 
-    return this.paginationService.paginate({
+    const x = await this.paginationService.paginate({
       ...options,
       // order: order.filter((o) => o.direction),
       // filter: filters.length
@@ -154,9 +165,13 @@ export class IndividualSubscribersService {
         .leftJoinAndSelect('item.agent', 'agent')
         .leftJoinAndSelect('item.facility', 'facility')
         .leftJoinAndSelect('item.package', 'package')
-        .leftJoinAndSelect('item.group', 'group'),
+        .leftJoinAndSelect('item.group', 'group')
+        .leftJoinAndSelect('item.bank', 'bank'),
+
       // .leftJoinAndSelect('item.payments', 'payments'),
     });
+
+    return x;
   }
 
   async findOneById(id: number) {
@@ -204,6 +219,13 @@ export class IndividualSubscribersService {
       : subscriber.passportPicture ?? '';
     subscriber.updatedBy = updatedBy;
 
+    subscriber.CAGDStaffID = data.CAGDStaffID ?? subscriber.CAGDStaffID;
+    subscriber.chequeNumber = data.chequeNumber ?? subscriber.chequeNumber;
+    subscriber.accountNumber = data.accountNumber ?? subscriber.accountNumber;
+
+    if (data.bank) {
+      subscriber.bank.id = +data.bank;
+    }
     // Update relationships if necessary
     if (data.facility) {
       subscriber.facility.id = +data.facility;

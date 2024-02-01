@@ -18,6 +18,7 @@ import { PaymentsModule } from './payments/payments.module';
 import { FamilySubscribersModule } from './family-subscribers/family-subscribers.module';
 import { AppController } from './app.controller';
 import { CorporateSubscribersModule } from './corporate-subscribers/corporate-subscribers.module';
+import { BankModule } from './bank/bank.module';
 
 @Module({
   imports: [
@@ -37,6 +38,7 @@ import { CorporateSubscribersModule } from './corporate-subscribers/corporate-su
     PaymentsModule,
     FamilySubscribersModule,
     CorporateSubscribersModule,
+    BankModule,
   ],
   controllers: [AppController],
   providers: [ExtractUserMiddleware],

@@ -21,6 +21,7 @@ import {
   MOMONETWORK,
   PAYMENTMODE,
 } from 'src/lib';
+import { Bank } from 'src/bank/entities/bank.entity';
 
 @Entity('individual_subscribers')
 export class IndividualSubscriber {
@@ -78,6 +79,15 @@ export class IndividualSubscriber {
   @Column()
   emergencyPersonPhone: string;
 
+  @Column({ default: '' })
+  accountNumber: string;
+
+  @Column({ default: '' })
+  chequeNumber: string;
+
+  @Column({ default: '' })
+  CAGDStaffID: string;
+
   @Column({ default: false })
   hasNHIS: boolean;
 
@@ -125,6 +135,9 @@ export class IndividualSubscriber {
 
   @ManyToOne(() => Group, { eager: true, nullable: true })
   group: Group;
+
+  @ManyToOne(() => Bank, { eager: true, nullable: true })
+  bank: Bank;
 
   @OneToMany(() => IndividualSubscriberPayment, (payment) => payment.subscriber)
   payments: IndividualSubscriberPayment[];

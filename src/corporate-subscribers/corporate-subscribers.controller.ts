@@ -202,4 +202,9 @@ export class CorporateSubscribersController {
       req.userDetails.user,
     );
   }
+
+  @Get('corportate-package/:id')
+  findFamilyPackage(@Param('id') id: string) {
+    return this.corporateSubscribersService.findFamilyPacakge(+id);
+  }
 }

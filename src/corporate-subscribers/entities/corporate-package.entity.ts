@@ -3,6 +3,7 @@ import {
   CreateDateColumn,
   Entity,
   JoinColumn,
+  ManyToOne,
   OneToMany,
   OneToOne,
   PrimaryGeneratedColumn,
@@ -11,6 +12,7 @@ import {
 import { DISCOUNT, FREQUENCY, MOMONETWORK, PAYMENTMODE } from 'src/lib';
 import { CorporateSubscriber } from './corporate-subscriber.entity';
 import { CorporateSubscriberPayment } from './corporate-payment.entity';
+import { Bank } from 'src/bank/entities/bank.entity';
 
 @Entity('corporate_packages')
 export class CorporatePackage {
@@ -22,6 +24,18 @@ export class CorporatePackage {
 
   @Column()
   paymentMode: PAYMENTMODE;
+
+  @Column({ default: '' })
+  accountNumber: string;
+
+  @Column({ default: '' })
+  chequeNumber: string;
+
+  @Column({ default: '' })
+  CAGDStaffID: string;
+
+  @ManyToOne(() => Bank, { eager: true, nullable: true })
+  bank: Bank;
 
   @Column()
   amountToDebit: number;

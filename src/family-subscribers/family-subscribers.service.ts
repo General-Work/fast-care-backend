@@ -25,6 +25,7 @@ import { FamilyPackage } from './entities/family-package.entity';
 import { FamilySubscriberPayment } from './entities/family-subscriber-payment.entity';
 import { PAYMENTMODE, PAYMENTSTATUS } from 'src/lib';
 import { UpdateFamilyPackageDto } from './dto/update-family-package.dto';
+import { Bank } from 'src/bank/entities/bank.entity';
 
 export enum FamilySort {
   id_asc = 'id_asc',
@@ -311,6 +312,14 @@ export class FamilySubscribersService {
     newPackage.momoNumber = data.momoNumber;
     newPackage.paymentMode = data.paymentMode;
     newPackage.familySubscriber = familySubscriber;
+    newPackage.CAGDStaffID = data.CAGDStaffID;
+    newPackage.accountNumber = data.accountNumber;
+    newPackage.chequeNumber = data.chequeNumber;
+    if (data.bank) {
+      const bank = new Bank();
+      bank.id = data.bank;
+      newPackage.bank = bank;
+    }
 
     try {
       await this.familyPackageRepository.save(newPackage);
@@ -357,6 +366,24 @@ export class FamilySubscribersService {
     return x;
   }
 
+  async findFamilyPacakge(id: number) {
+    const payment = await this.familyPackageRepository
+      .createQueryBuilder('item')
+      .leftJoinAndSelect('item.familySubscriber', 'familySubscriber')
+      .where('familySubscriber.id = :familySubscriberId', {
+        familySubscriberId: id,
+      })
+      .getOne();
+
+    if (!payment) {
+      throw new NotFoundException(
+        `Package for family with ID ${id} not found.`,
+      );
+    }
+
+    return payment;
+  }
+
   async updatePackage(
     packageId: number,
     data: UpdateFamilyPackageDto,
@@ -365,20 +392,39 @@ export class FamilySubscribersService {
     const existingPackage = await this.findPackageById(packageId);
 
     // Update properties based on your requirements
-    existingPackage.amountToDebit = data.amountToDebit;
-    existingPackage.discount = data.discount;
-    existingPackage.frequency = data.frequency;
-    existingPackage.momoNetwork = data.momoNetwork;
-    existingPackage.momoNumber = data.momoNumber;
-    existingPackage.paymentMode = data.paymentMode;
+    existingPackage.amountToDebit =
+      data.amountToDebit ?? existingPackage.amountToDebit;
+    existingPackage.discount = data.discount ?? existingPackage.discount;
+    existingPackage.frequency = data.frequency ?? existingPackage.frequency;
+    existingPackage.momoNetwork =
+      data.momoNetwork ?? existingPackage.momoNetwork;
+    existingPackage.momoNumber = data.momoNumber ?? existingPackage.momoNumber;
+    existingPackage.paymentMode =
+      data.paymentMode ?? existingPackage.paymentMode;
+    existingPackage.CAGDStaffID =
+      data.CAGDStaffID ?? existingPackage.CAGDStaffID;
+    existingPackage.accountNumber =
+      data.accountNumber ?? existingPackage.accountNumber;
+    existingPackage.chequeNumber =
+      data.chequeNumber ?? existingPackage.chequeNumber;
+    if (data.bank) {
+      const bank = new Bank();
+      bank.id = data.bank;
+      existingPackage.bank = bank;
+    }
 
     try {
       await this.familyPackageRepository.save(existingPackage);
 
       // Update associated payment
-      const payment = await this.familySubscriberPaymentRepository.findOne({
-        where: { familyPackage: existingPackage },
-      });
+
+      const payment = await this.familySubscriberPaymentRepository
+        .createQueryBuilder('payment')
+        .leftJoinAndSelect('payment.familyPackage', 'familyPackage')
+        .where('familyPackage.id = :familyPackageId', {
+          familyPackageId: existingPackage.id,
+        })
+        .getOne();
 
       if (!payment) {
         throw new NotFoundException(

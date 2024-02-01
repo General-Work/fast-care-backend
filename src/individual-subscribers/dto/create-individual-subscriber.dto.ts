@@ -118,6 +118,25 @@ export class CreateIndividualSubscriberDto {
   @ApiProperty({ enum: PAYMENTMODE, example: PAYMENTMODE.Cash })
   paymentMode: PAYMENTMODE;
 
+  @IsOptional()
+  @ApiProperty({ required: false, type: Number })
+  bank: number;
+
+  @IsOptional()
+  @IsString({ message: 'Account Number should be a string' })
+  @ApiProperty({ required: false })
+  accountNumber: string;
+
+  @IsOptional()
+  @IsString({ message: 'Cheque should be a string' })
+  @ApiProperty({ required: false })
+  chequeNumber: string;
+
+  @IsOptional()
+  @IsString({ message: 'CAGD Staff ID should be a string' })
+  @ApiProperty({ required: false })
+  CAGDStaffID: string;
+
   @IsNotEmpty()
   @IsEnum(FREQUENCY)
   @ApiProperty({ enum: FREQUENCY, example: FREQUENCY.Daily })

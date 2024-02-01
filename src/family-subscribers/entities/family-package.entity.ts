@@ -3,15 +3,16 @@ import {
   CreateDateColumn,
   Entity,
   JoinColumn,
+  ManyToOne,
   OneToMany,
   OneToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { FamilyBeneficiaries } from './family-beneficiaries.entity';
 import { DISCOUNT, FREQUENCY, MOMONETWORK, PAYMENTMODE } from 'src/lib';
 import { FamilySubscriber } from './family-subscriber.entity';
 import { FamilySubscriberPayment } from './family-subscriber-payment.entity';
+import { Bank } from 'src/bank/entities/bank.entity';
 
 @Entity('family_packages')
 export class FamilyPackage {
@@ -36,23 +37,34 @@ export class FamilyPackage {
   @Column({ nullable: true })
   momoNumber: string;
 
+  @Column({ default: '' })
+  accountNumber: string;
+
+  @Column({ default: '' })
+  chequeNumber: string;
+
+  @Column({ default: '' })
+  CAGDStaffID: string;
+
   @OneToOne(() => FamilySubscriber, (family) => family.familyPackage)
   @JoinColumn({ name: 'familySubscriberId' })
   familySubscriber: FamilySubscriber;
 
-
   @OneToMany(() => FamilySubscriberPayment, (payment) => payment.familyPackage)
   payments: FamilySubscriberPayment[];
 
-  @Column({nullable: true})
-  createdBy:string
+  @ManyToOne(() => Bank, { eager: true, nullable: true })
+  bank: Bank;
 
-  @Column({nullable: true})
-  updateBy:string
+  @Column({ nullable: true })
+  createdBy: string;
+
+  @Column({ nullable: true })
+  updateBy: string;
 
   @CreateDateColumn()
-  createdAt: Date
+  createdAt: Date;
 
   @UpdateDateColumn()
-  updatedAt: Date
+  updatedAt: Date;
 }

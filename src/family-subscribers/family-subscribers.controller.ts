@@ -202,4 +202,9 @@ export class FamilySubscribersController {
       req.userDetails.user,
     );
   }
+
+  @Get('family-package/:id')
+  findFamilyPackage(@Param('id') id: string) {
+    return this.familySubscribersService.findFamilyPacakge(+id);
+  }
 }
