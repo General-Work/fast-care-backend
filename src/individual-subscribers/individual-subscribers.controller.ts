@@ -8,7 +8,6 @@ import {
   Delete,
   UseInterceptors,
   UploadedFile,
-  Res,
   BadRequestException,
   Req,
   UseGuards,
@@ -30,13 +29,12 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { Multer } from 'multer';
-import { Response, Request } from 'express';
+import { Request } from 'express';
 import { JwtGuard } from 'src/auth/gurads/jwt-auth.guard';
-import { OrderDirection } from 'src/pagination/pagination.service';
 import { extractColumnAndDirection } from 'src/lib';
 
 @ApiTags('Individual Subscribers')
-// @UseGuards(JwtGuard)
+@UseGuards(JwtGuard)
 @Controller('individual-subscribers')
 export class IndividualSubscribersController {
   constructor(
