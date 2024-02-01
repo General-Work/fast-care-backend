@@ -154,8 +154,8 @@ export class IndividualSubscribersService {
         .leftJoinAndSelect('item.agent', 'agent')
         .leftJoinAndSelect('item.facility', 'facility')
         .leftJoinAndSelect('item.package', 'package')
-        .leftJoinAndSelect('item.group', 'group')
-        .leftJoinAndSelect('item.payments', 'payments'),
+        .leftJoinAndSelect('item.group', 'group'),
+      // .leftJoinAndSelect('item.payments', 'payments'),
     });
   }
 
