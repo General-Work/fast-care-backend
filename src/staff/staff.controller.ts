@@ -10,12 +10,13 @@ import {
   UseGuards,
   Req,
 } from '@nestjs/common';
-import { StaffService } from './staff.service';
+import { StaffService, StaffSort } from './staff.service';
 import { CreateStaffDto } from './dto/create-staff.dto';
 import { UpdateStaffDto } from './dto/update-staff.dto';
 import { ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { OrderDirection } from 'src/pagination/pagination.service';
 import { JwtGuard } from 'src/auth/gurads/jwt-auth.guard';
+import { extractColumnAndDirection } from 'src/lib';
 
 @ApiTags('Staff')
 @UseGuards(JwtGuard)
@@ -47,46 +48,17 @@ export class StaffController {
     description: 'Page size',
   })
   @ApiQuery({
-    name: 'staffCode',
+    name: 'search',
     required: false,
     type: String,
-    description: 'Search staff Code',
+    description: 'Search column',
   })
   @ApiQuery({
-    name: 'lastName',
+    name: 'sort',
     required: false,
-    type: String,
-    description: 'Search last Name',
-  })
-  @ApiQuery({
-    name: 'firstName',
-    required: false,
-    type: String,
-    description: 'Search first Name',
-  })
-  @ApiQuery({
-    name: 'orderByLastName',
-    required: false,
-    type: 'ASC' || 'DESC',
-    description: 'Order by last name',
-  })
-  @ApiQuery({
-    name: 'orderByFirstName',
-    required: false,
-    type: 'ASC' || 'DESC',
-    description: 'Order by first name',
-  })
-  @ApiQuery({
-    name: 'orderByStaffCode',
-    required: false,
-    type: 'ASC' || 'DESC',
-    description: 'Order by staff code',
-  })
-  @ApiQuery({
-    name: 'orderByDateCreated',
-    required: false,
-    type: 'ASC' || 'DESC',
-    description: 'Order by dateCreated',
+    enum: StaffSort,
+    description: 'Order by column',
+    example: StaffSort.firstName_asc,
   })
   @ApiResponse({
     status: 200,
@@ -96,14 +68,8 @@ export class StaffController {
   async findAll(
     @Query('page') page: number,
     @Query('pageSize') pageSize: number,
-    @Query('staffCode') query: string,
-    @Query('lastName') lastName: string,
-    @Query('firstName') firstName: string,
-    @Query('orderByLastName') sortLastName: OrderDirection,
-    @Query('orderByFirstName') sortFirstName: OrderDirection,
-    @Query('orderByStaffCode') sortStaffCode: OrderDirection,
-
-    @Query('orderByDateCreated') createdAt: OrderDirection,
+    @Query('search') query: string,
+    @Query('sort') sort: StaffSort,
     @Req() req,
   ) {
     const routeName = `${req.protocol}://${req.get('host')}${req.path}`;
@@ -111,17 +77,17 @@ export class StaffController {
     const options = {
       page,
       pageSize,
-      filter: { staffCode: query, lastName, firstName },
-      order: [
-        { column: 'lastName', direction: sortLastName },
-        { column: 'firstName', direction: sortFirstName },
-        { column: 'staffCode', direction: sortStaffCode },
-        { column: 'createdAt', direction: createdAt },
-      ],
+      search: query ?? '',
+      filter: {},
+      order: [],
       routeName,
     };
 
     try {
+      if (sort) {
+        const { column, direction } = extractColumnAndDirection(sort);
+        options.order.push({ column, direction });
+      }
       const result = await this.staffService.findAll(options);
       return result;
     } catch (error) {

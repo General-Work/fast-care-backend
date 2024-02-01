@@ -14,7 +14,7 @@ export class CallCommentCategory {
   @Column({ unique: true })
   name: string;
 
-  @Column({ unique: true })
+  @Column()
   description: string;
 
   @CreateDateColumn()

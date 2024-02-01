@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Repository, SelectQueryBuilder } from 'typeorm';
+import { Repository, SelectQueryBuilder, Like } from 'typeorm';
 
 export enum OrderDirection {
   ASC = 'ASC',
@@ -13,9 +13,10 @@ export interface PaginationOptions {
   pageSize?: number;
   filter?: Record<string, any>;
   order?: OrderBy[];
-  repository?: Repository<any> | SelectQueryBuilder<any>; // Accept both Repository and SelectQueryBuilder
+  repository?: Repository<any> | SelectQueryBuilder<any>;
   routeName: string;
-  relations?: string[]; // Add relations field
+  relations?: string[];
+  search?: string; // Add search field
 }
 
 export interface PageInfo {
@@ -45,20 +46,39 @@ export interface PaginatedResult {
 @Injectable()
 export class PaginationService {
   async paginate<T>(options: PaginationOptions): Promise<PaginatedResult> {
-    const { page, pageSize, filter, order, repository, routeName, relations } = options;
+    const {
+      page,
+      pageSize,
+      filter,
+      order,
+      repository,
+      routeName,
+      relations,
+      search,
+    } = options;
 
     let queryBuilder: SelectQueryBuilder<T>;
 
     if (repository instanceof Repository) {
-      queryBuilder = this.createPaginationQueryBuilder(page, pageSize, repository);
+      queryBuilder = this.createPaginationQueryBuilder(
+        page,
+        pageSize,
+        repository,
+      );
     } else if (repository instanceof SelectQueryBuilder) {
       queryBuilder = repository;
     } else {
-      throw new Error('Invalid repository type. Must be Repository or SelectQueryBuilder.');
+      throw new Error(
+        'Invalid repository type. Must be Repository or SelectQueryBuilder.',
+      );
     }
 
     if (filter) {
       this.applyWhereConditions(queryBuilder, filter);
+    }
+
+    if (search) {
+      this.applySearchConditions(queryBuilder, search);
     }
 
     if (order) {
@@ -122,6 +142,23 @@ export class PaginationService {
     });
   }
 
+  private applySearchConditions<T>(
+    queryBuilder: SelectQueryBuilder<T>,
+    search: string,
+  ): void {
+    const entityColumns =
+      queryBuilder.expressionMap.mainAlias.metadata.columns.map(
+        (column) => column.propertyName,
+      );
+    const searchConditions = entityColumns.map(
+      (column) => `${queryBuilder.alias}.${column} LIKE :search`,
+    );
+
+    queryBuilder.andWhere(`(${searchConditions.join(' OR ')})`, {
+      search: `%${search}%`,
+    });
+  }
+
   private applyOrderConditions(
     queryBuilder: SelectQueryBuilder<any>,
     order: { column: string; direction: 'ASC' | 'DESC' }[],
@@ -136,9 +173,8 @@ export class PaginationService {
     relations: string[],
   ): SelectQueryBuilder<T> {
     relations.forEach((relation) => {
-      const nestedRelations = relation.split('.'); // Split nested relations
+      const nestedRelations = relation.split('.');
       nestedRelations.reduce((builder, rel) => {
-        // For each nested relation, left join and select
         return builder.leftJoinAndSelect(`item.${rel}`, rel);
       }, queryBuilder);
     });

@@ -20,7 +20,7 @@ export class FamilySubscriber {
   @Column()
   name: string;
 
-  @Column()
+  @Column({ unique: true })
   familyMembershipID: string;
 
   @Column()

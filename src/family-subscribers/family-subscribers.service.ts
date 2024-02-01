@@ -26,6 +26,19 @@ import { FamilySubscriberPayment } from './entities/family-subscriber-payment.en
 import { PAYMENTMODE, PAYMENTSTATUS } from 'src/lib';
 import { UpdateFamilyPackageDto } from './dto/update-family-package.dto';
 
+export enum FamilySort {
+  id_asc = 'id_asc',
+  id_desc = 'id_desc',
+  name_asc = 'name_asc',
+  name_desc = 'name_desc',
+  familyMembershipID_asc = 'familyMembershipID_asc',
+  familyMembershipID_desc = 'familyMembershipID_desc',
+  agent_asc = 'agent_asc',
+  agent_desc = 'agent_desc',
+  createdAt_asc = 'createdAt_asc',
+  createdAt_desc = 'createdAt_desc',
+}
+
 @Injectable()
 export class FamilySubscribersService {
   constructor(
@@ -71,7 +84,9 @@ export class FamilySubscribersService {
         error instanceof QueryFailedError &&
         error.message.includes('duplicate key')
       ) {
-        throw new ConflictException('Family with this name already exists.');
+        throw new ConflictException(
+          'Family with this details already exists. Confirm familyMembershipID',
+        );
       } else {
         throw error;
       }
@@ -79,22 +94,23 @@ export class FamilySubscribersService {
   }
 
   async findAll(options: PaginationOptions) {
-    const { filter, order } = options;
+    // const { filter, order } = options;
 
-    const filters = [
-      { familyMembershipID: filter?.familyMembershipID },
-      { name: filter?.name },
-    ].filter((filter) => filter[Object.keys(filter)[0]]);
+    // const filters = [
+    //   { familyMembershipID: filter?.familyMembershipID },
+    //   { name: filter?.name },
+    // ].filter((filter) => filter[Object.keys(filter)[0]]);
 
     // return ;
     return this.paginationService.paginate({
       ...options,
-      order: order.filter((o) => o.direction),
-      filter: filters.length
-        ? filters.reduce((acc, curr) => ({ ...acc, ...curr }))
-        : {},
+      // order: order.filter((o) => o.direction),
+      // filter: filters.length
+      //   ? filters.reduce((acc, curr) => ({ ...acc, ...curr }))
+      //   : {},
       repository: this.familyRepository
         .createQueryBuilder('item')
+        .leftJoinAndSelect('item.agent', 'agent')
         .leftJoinAndSelect('item.familyPackage', 'familyPackage')
         .leftJoinAndMapMany(
           'item.beneficiaries',

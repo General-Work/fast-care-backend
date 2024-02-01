@@ -24,7 +24,6 @@ export function comparePasswords(rawPassword: string, hash: string) {
   return bcryt.compareSync(rawPassword, hash);
 }
 
-
 export class QueryBuilderHelper {
   static joinRelations<T>(
     queryBuilder: SelectQueryBuilder<T>,
@@ -40,4 +39,17 @@ export class QueryBuilderHelper {
 
     return queryBuilder;
   }
+}
+
+export function extractColumnAndDirection(enumValue: string): {
+  column: string;
+  direction: string;
+} {
+  const [column, direction] = enumValue.split('_');
+
+  if (direction !== 'asc' && direction !== 'desc') {
+    throw new Error('Invalid sort direction');
+  }
+
+  return { column, direction: direction.toUpperCase() };
 }

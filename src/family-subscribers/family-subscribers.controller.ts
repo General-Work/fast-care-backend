@@ -10,7 +10,10 @@ import {
   Req,
   Query,
 } from '@nestjs/common';
-import { FamilySubscribersService } from './family-subscribers.service';
+import {
+  FamilySort,
+  FamilySubscribersService,
+} from './family-subscribers.service';
 import { CreateFamilySubscriberDto } from './dto/create-family-subscriber.dto';
 import { UpdateFamilySubscriberDto } from './dto/update-family-subscriber.dto';
 import { ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
@@ -21,6 +24,7 @@ import { CreateFamilyBeneficiaryDto } from './dto/create-family-beneficiary.dto'
 import { UpdateFamilyBeneficiaryDto } from './dto/update-family-beneficiary.dto';
 import { CreateFamilyPackageDto } from './dto/create-family-package.dto';
 import { UpdateFamilyPackageDto } from './dto/update-family-package.dto';
+import { extractColumnAndDirection } from 'src/lib';
 
 @ApiTags('Family Subscribers')
 @UseGuards(JwtGuard)
@@ -61,23 +65,17 @@ export class FamilySubscribersController {
     description: 'Page size',
   })
   @ApiQuery({
-    name: 'familyMembershipID',
+    name: 'search',
     required: false,
     type: String,
-    description: 'Search family membership ID',
+    description: 'Search column',
   })
   @ApiQuery({
-    name: 'name',
+    name: 'sort',
     required: false,
-    type: String,
-    description: 'Search family Name',
-  })
-  @ApiQuery({
-    name: 'orderByDateCreated',
-    required: false,
-    enum: OrderDirection,
-    example: OrderDirection.ASC,
-    description: 'Order by dateCreated',
+    enum: FamilySort,
+    description: 'Order by column',
+    example: FamilySort.name_asc,
   })
   @ApiResponse({
     status: 200,
@@ -87,9 +85,8 @@ export class FamilySubscribersController {
   async findAll(
     @Query('page') page: number,
     @Query('pageSize') pageSize: number,
-    @Query('membershipID') query: string,
-    @Query('name') name: string,
-    @Query('orderByDateCreated') createdAt: OrderDirection,
+    @Query('search') query: string,
+    @Query('sort') sort: FamilySort,
     @Req() req,
   ) {
     const routeName = `${req.protocol}://${req.get('host')}${req.path}`;
@@ -97,12 +94,17 @@ export class FamilySubscribersController {
     const options = {
       page,
       pageSize,
-      filter: { familyMembershipID: query, name },
-      order: [{ column: 'createdAt', direction: createdAt }],
+      search: query ?? '',
+      filter: {},
+      order: [],
       routeName,
     };
 
     try {
+      if (sort) {
+        const { column, direction } = extractColumnAndDirection(sort);
+        options.order.push({ column, direction });
+      }
       const result = await this.familySubscribersService.findAll(options);
       return result;
     } catch (error) {

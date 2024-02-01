@@ -14,7 +14,10 @@ import {
   UseGuards,
   Query,
 } from '@nestjs/common';
-import { IndividualSubscribersService } from './individual-subscribers.service';
+import {
+  IndividualSort,
+  IndividualSubscribersService,
+} from './individual-subscribers.service';
 import { CreateIndividualSubscriberDto } from './dto/create-individual-subscriber.dto';
 import { UpdateIndividualSubscriberDto } from './dto/update-individual-subscriber.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -30,9 +33,10 @@ import { Multer } from 'multer';
 import { Response, Request } from 'express';
 import { JwtGuard } from 'src/auth/gurads/jwt-auth.guard';
 import { OrderDirection } from 'src/pagination/pagination.service';
+import { extractColumnAndDirection } from 'src/lib';
 
 @ApiTags('Individual Subscribers')
-@UseGuards(JwtGuard)
+// @UseGuards(JwtGuard)
 @Controller('individual-subscribers')
 export class IndividualSubscribersController {
   constructor(
@@ -87,50 +91,17 @@ export class IndividualSubscribersController {
     description: 'Page size',
   })
   @ApiQuery({
-    name: 'staffCode',
+    name: 'search',
     required: false,
     type: String,
-    description: 'Search staff Code',
+    description: 'Search column',
   })
   @ApiQuery({
-    name: 'lastName',
+    name: 'sort',
     required: false,
-    type: String,
-    description: 'Search last Name',
-  })
-  @ApiQuery({
-    name: 'firstName',
-    required: false,
-    type: String,
-    description: 'Search first Name',
-  })
-  @ApiQuery({
-    name: 'orderByLastName',
-    required: false,
-    enum: OrderDirection,
-    example: OrderDirection.ASC,
-    description: 'Order by last name',
-  })
-  @ApiQuery({
-    name: 'orderByFirstName',
-    required: false,
-    enum: OrderDirection,
-    example: OrderDirection.ASC,
-    description: 'Order by first name',
-  })
-  @ApiQuery({
-    name: 'orderByMembershipID',
-    required: false,
-    enum: OrderDirection,
-    example: OrderDirection.ASC,
-    description: 'Order by membership ID code',
-  })
-  @ApiQuery({
-    name: 'orderByDateCreated',
-    required: false,
-    enum: OrderDirection,
-    example: OrderDirection.ASC,
-    description: 'Order by dateCreated',
+    enum: IndividualSort,
+    description: 'Order by column',
+    example: IndividualSort.name_asc,
   })
   @ApiResponse({
     status: 200,
@@ -140,15 +111,8 @@ export class IndividualSubscribersController {
   async findAll(
     @Query('page') page: number,
     @Query('pageSize') pageSize: number,
-    @Query('membershipID') query: string,
-    @Query('lastName') lastName: string,
-    @Query('firstName') firstName: string,
-    @Query('orderByLastName') sortLastName: OrderDirection,
-    @Query('orderByFirstName') sortFirstName: OrderDirection,
-    @Query('orderByMembershipID') sortMembershipID: OrderDirection,
-    @Query('orderByFacility') sortFacility: OrderDirection,
-
-    @Query('orderByDateCreated') createdAt: OrderDirection,
+    @Query('search') query: string,
+    @Query('sort') sort: IndividualSort,
     @Req() req,
   ) {
     const routeName = `${req.protocol}://${req.get('host')}${req.path}`;
@@ -156,18 +120,17 @@ export class IndividualSubscribersController {
     const options = {
       page,
       pageSize,
-      filter: { membershipID: query, lastName, firstName },
-      order: [
-        { column: 'lastName', direction: sortLastName },
-        { column: 'firstName', direction: sortFirstName },
-        { column: 'membershipID', direction: sortMembershipID },
-        { column: 'createdAt', direction: createdAt },
-        { column: 'facility', direction: sortFacility },
-      ],
+      search: query ?? '',
+      filter: {},
+      order: [],
       routeName,
     };
 
     try {
+      if (sort) {
+        const { column, direction } = extractColumnAndDirection(sort);
+        options.order.push({ column, direction });
+      }
       const result = await this.individualSubscribersService.findAll(options);
       return result;
     } catch (error) {

@@ -10,13 +10,14 @@ import {
   Req,
   Query,
 } from '@nestjs/common';
-import { UsersService } from './users.service';
+import { UserSort, UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { JwtGuard } from 'src/auth/gurads/jwt-auth.guard';
 import { OrderDirection } from 'src/pagination/pagination.service';
+import { extractColumnAndDirection } from 'src/lib';
 
 @ApiTags('Users')
 @UseGuards(JwtGuard)
@@ -48,22 +49,17 @@ export class UsersController {
     description: 'Page size',
   })
   @ApiQuery({
-    name: 'name',
+    name: 'search',
     required: false,
     type: String,
-    description: 'Search name',
+    description: 'Search column',
   })
   @ApiQuery({
-    name: 'orderByName',
+    name: 'sort',
     required: false,
-    type: 'ASC' || 'DESC',
-    description: 'Order by name',
-  })
-  @ApiQuery({
-    name: 'orderByDateCreated',
-    required: false,
-    type: 'ASC' || 'DESC',
-    description: 'Order by dateCreated',
+    enum: UserSort,
+    description: 'Order by column',
+    example: UserSort.username_asc,
   })
   @ApiResponse({
     status: 200,
@@ -73,10 +69,8 @@ export class UsersController {
   async findAll(
     @Query('page') page: number,
     @Query('pageSize') pageSize: number,
-    @Query('name') query: string,
-    @Query('orderByName') name: OrderDirection,
-    @Query('orderByDateCreated') createdAt: OrderDirection,
-
+    @Query('search') query: string,
+    @Query('sort') sort: UserSort,
     @Req() req,
   ) {
     const routeName = `${req.protocol}://${req.get('host')}${req.path}`;
@@ -86,15 +80,17 @@ export class UsersController {
     const options = {
       page,
       pageSize,
-      filter: { name: query },
-      order: [
-        { column: 'name', direction: name },
-        { column: 'createdAt', direction: createdAt },
-      ],
+      search: query ?? '',
+      filter: {},
+      order: [],
       routeName,
     };
 
     try {
+      if (sort) {
+        const { column, direction } = extractColumnAndDirection(sort);
+        options.order.push({ column, direction });
+      }
       const result = await this.usersService.findAll(options);
       return result;
     } catch (error) {

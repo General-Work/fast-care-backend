@@ -15,6 +15,19 @@ import {
   PaginationService,
 } from 'src/pagination/pagination.service';
 
+export enum StaffSort {
+  firstName_asc = 'firstName_asc',
+  firstName_desc = 'firstName_desc',
+  lastName_asc = 'lastName_asc',
+  lastName_desc = 'lastName_desc',
+  createdAt_asc = 'createdAt_asc',
+  createdAt_desc = 'createdAt_desc',
+  staffCode_asc = 'staffCode_asc',
+  staffCode_desc = 'staffCode_desc',
+  id_asc = 'id_asc',
+  id_desc = 'id_desc',
+}
+
 @Injectable()
 export class StaffService {
   constructor(
@@ -43,7 +56,9 @@ export class StaffService {
         error instanceof QueryFailedError &&
         error.message.includes('duplicate key')
       ) {
-        throw new ConflictException('Staff with this name already exists.');
+        throw new ConflictException(
+          'Staff with this details already exists. Confrim email ',
+        );
       } else {
         throw error;
       }
@@ -51,20 +66,8 @@ export class StaffService {
   }
 
   async findAll(options: PaginationOptions): Promise<PaginatedResult> {
-    const { filter, order } = options;
-
-    const filters = [
-      { staffCode: filter?.staffCode },
-      { lastName: filter?.lastName },
-      { firstName: filter?.firstName },
-    ].filter((filter) => filter[Object.keys(filter)[0]]);
-
     return this.paginationService.paginate({
       ...options,
-      order: order.filter((o) => o.direction),
-      filter: filters.length
-        ? filters.reduce((acc, curr) => ({ ...acc, ...curr }))
-        : {},
       repository: this.staffRepository,
     });
   }

@@ -26,6 +26,15 @@ import {
 import { MailService } from 'src/mail/mail.service';
 import { ChangePasswordDto } from './dto/change-password.dto';
 
+export enum UserSort {
+  username_asc = 'username_asc',
+  username_desc = 'username_desc',
+  createdAt_asc = 'createdAt_asc',
+  createdAt_desc = 'createdAt_desc',
+  id_asc = 'id_asc',
+  id_desc = 'id_desc',
+}
+
 @Injectable()
 export class UsersService {
   constructor(
@@ -100,17 +109,9 @@ export class UsersService {
   }
 
   async findAll(options: PaginationOptions): Promise<PaginatedResult> {
-    const filterConditions = options.filter?.name ? options.filter : {};
-    let order = [];
-    if (options.order[0].direction) order.push(options.order[0]);
-    if (options.order[1].direction) order.push(options.order[1]);
-
     const res = await this.paginationService.paginate({
       ...options,
-      order: order,
-      filter: filterConditions,
       repository: this.userRepository,
-      routeName: options.routeName,
     });
 
     const d = {

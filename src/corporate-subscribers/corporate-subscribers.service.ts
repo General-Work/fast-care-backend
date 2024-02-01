@@ -26,6 +26,21 @@ import { CreateCorporatePackageDto } from './dto/create-corporate-package.dto';
 import { PAYMENTMODE, PAYMENTSTATUS } from 'src/lib';
 import { UpdateCorporatePackageDto } from './dto/update-corporate-package.dto';
 
+export enum CorporateSort {
+  id_asc = 'id_asc',
+  id_desc = 'id_desc',
+  name_asc = 'name_asc',
+  name_desc = 'name_desc',
+  idNumber_asc = 'idNumber_asc',
+  idNumber_desc = 'idNumber_desc',
+  corporateMembershipID_asc = 'corporateMembershipID_asc',
+  corporateMembershipID_desc = 'corporateMembershipID_desc',
+  agent_asc = 'agent_asc',
+  agent_desc = 'agent_desc',
+  createdAt_asc = 'createdAt_asc',
+  createdAt_desc = 'createdAt_desc',
+}
+
 @Injectable()
 export class CorporateSubscribersService {
   constructor(
@@ -49,7 +64,7 @@ export class CorporateSubscribersService {
     staff.id = agent;
     const corporate = new CorporateSubscriber();
     corporate.name = data.name;
-    corporate.idNumber = data.email;
+    corporate.idNumber = data.idNumber;
     corporate.address = data.address;
     corporate.contact = data.contact;
     corporate.email = data.email;
@@ -72,7 +87,9 @@ export class CorporateSubscribersService {
         error instanceof QueryFailedError &&
         error.message.includes('duplicate key')
       ) {
-        throw new ConflictException('Corporate with this name already exists.');
+        throw new ConflictException(
+          'Corporate with this details already exists. Confirm contact',
+        );
       } else {
         throw error;
       }
@@ -80,21 +97,22 @@ export class CorporateSubscribersService {
   }
 
   async findAll(options: PaginationOptions): Promise<PaginatedResult> {
-    const { filter, order } = options;
+    // const { filter, order } = options;
 
-    const filters = [
-      { corporateMembershipID: filter?.corporateMembershipID },
-      { name: filter?.name },
-    ].filter((filter) => filter[Object.keys(filter)[0]]);
+    // const filters = [
+    //   { corporateMembershipID: filter?.corporateMembershipID },
+    //   { name: filter?.name },
+    // ].filter((filter) => filter[Object.keys(filter)[0]]);
 
     return this.paginationService.paginate({
       ...options,
-      order: order.filter((o) => o.direction),
-      filter: filters.length
-        ? filters.reduce((acc, curr) => ({ ...acc, ...curr }))
-        : {},
+      // order: order.filter((o) => o.direction),
+      // filter: filters.length
+      //   ? filters.reduce((acc, curr) => ({ ...acc, ...curr }))
+      //   : {},
       repository: this.corporateRepository
         .createQueryBuilder('item')
+        .leftJoinAndSelect('item.agent', 'agent')
         .leftJoinAndSelect('item.corporatePackage', 'corporatePackage')
         .leftJoinAndMapMany(
           'item.beneficiaries',

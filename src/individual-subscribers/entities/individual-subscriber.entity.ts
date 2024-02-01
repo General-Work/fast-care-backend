@@ -30,13 +30,13 @@ export class IndividualSubscriber {
   @Column()
   idType: IDTYPES;
 
-  @Column({ type: 'text', nullable: true })
+  @Column({ type: 'text', nullable: true, default: '' })
   passportPicture: string;
 
-  @Column({ unique: true })
+  @Column()
   idNumber: string;
 
-  @Column({ unique: true })
+  @Column()
   membershipID: string;
 
   @Column()
@@ -66,7 +66,7 @@ export class IndividualSubscriber {
   @Column()
   gpsAddress: string;
 
-  @Column({ unique: true })
+  @Column()
   phoneOne: string;
 
   @Column()

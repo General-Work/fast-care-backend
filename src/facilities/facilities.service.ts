@@ -51,15 +51,8 @@ export class FacilitiesService {
   }
 
   async findAll(options: PaginationOptions): Promise<PaginatedResult> {
-    const filterConditions = options.filter?.name ? options.filter : {};
-    let order = [];
-    if (options.order[0].direction) order.push(options.order[0]);
-    if (options.order[1].direction) order.push(options.order[1]);
-
     return this.paginationService.paginate({
       ...options,
-      order: order,
-      filter: filterConditions,
       repository: this.facilityRepository,
     });
   }

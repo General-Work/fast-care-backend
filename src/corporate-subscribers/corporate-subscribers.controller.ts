@@ -10,7 +10,10 @@ import {
   Req,
   Query,
 } from '@nestjs/common';
-import { CorporateSubscribersService } from './corporate-subscribers.service';
+import {
+  CorporateSort,
+  CorporateSubscribersService,
+} from './corporate-subscribers.service';
 import { CreateCorporateSubscriberDto } from './dto/create-corporate-subscriber.dto';
 import { UpdateCorporateSubscriberDto } from './dto/update-corporate-subscriber.dto';
 import { ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
@@ -21,6 +24,7 @@ import { CreateCorporateBeneficiaryDto } from './dto/create-corporate-beneficiar
 import { UpdateCorporateBeneficiaryDto } from './dto/update-corporate-beneficiary.dto';
 import { CreateCorporatePackageDto } from './dto/create-corporate-package.dto';
 import { UpdateCorporatePackageDto } from './dto/update-corporate-package.dto';
+import { extractColumnAndDirection } from 'src/lib';
 
 @ApiTags('Corporate Subscribers')
 @UseGuards(JwtGuard)
@@ -61,23 +65,17 @@ export class CorporateSubscribersController {
     description: 'Page size',
   })
   @ApiQuery({
-    name: 'corporateMembershipID',
+    name: 'search',
     required: false,
     type: String,
-    description: 'Search corporate membership ID',
+    description: 'Search column',
   })
   @ApiQuery({
-    name: 'name',
+    name: 'sort',
     required: false,
-    type: String,
-    description: 'Search family Name',
-  })
-  @ApiQuery({
-    name: 'orderByDateCreated',
-    required: false,
-    enum: OrderDirection,
-    example: OrderDirection.ASC,
-    description: 'Order by dateCreated',
+    enum: CorporateSort,
+    description: 'Order by column',
+    example: CorporateSort.name_asc,
   })
   @ApiResponse({
     status: 200,
@@ -87,9 +85,8 @@ export class CorporateSubscribersController {
   async findAll(
     @Query('page') page: number,
     @Query('pageSize') pageSize: number,
-    @Query('membershipID') query: string,
-    @Query('name') name: string,
-    @Query('orderByDateCreated') createdAt: OrderDirection,
+    @Query('search') query: string,
+    @Query('sort') sort: CorporateSort,
     @Req() req,
   ) {
     const routeName = `${req.protocol}://${req.get('host')}${req.path}`;
@@ -97,12 +94,17 @@ export class CorporateSubscribersController {
     const options = {
       page,
       pageSize,
-      filter: { corporateMembershipID: query, name },
-      order: [{ column: 'createdAt', direction: createdAt }],
+      search: query ?? '',
+      filter: {},
+      order: [],
       routeName,
     };
 
     try {
+      if (sort) {
+        const { column, direction } = extractColumnAndDirection(sort);
+        options.order.push({ column, direction });
+      }
       const result = await this.corporateSubscribersService.findAll(options);
       return result;
     } catch (error) {

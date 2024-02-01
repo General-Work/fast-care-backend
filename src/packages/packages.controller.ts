@@ -16,6 +16,8 @@ import { UpdatePackageDto } from './dto/update-package.dto';
 import { ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { OrderDirection } from 'src/pagination/pagination.service';
 import { JwtGuard } from 'src/auth/gurads/jwt-auth.guard';
+import { GroupSort } from 'src/groups/groups.service';
+import { extractColumnAndDirection } from 'src/lib';
 
 @ApiTags('Packages')
 @UseGuards(JwtGuard)
@@ -47,22 +49,17 @@ export class PackagesController {
     description: 'Page size',
   })
   @ApiQuery({
-    name: 'name',
+    name: 'search',
     required: false,
     type: String,
-    description: 'Search name',
+    description: 'Search column',
   })
   @ApiQuery({
-    name: 'orderByName',
+    name: 'sort',
     required: false,
-    type: 'ASC' || 'DESC',
-    description: 'Order by name',
-  })
-  @ApiQuery({
-    name: 'orderByDateCreated',
-    required: false,
-    type: 'ASC' || 'DESC',
-    description: 'Order by dateCreated',
+    enum: GroupSort,
+    description: 'Order by column',
+    example: GroupSort.name_asc,
   })
   @ApiResponse({
     status: 200,
@@ -72,24 +69,26 @@ export class PackagesController {
   async findAll(
     @Query('page') page: number,
     @Query('pageSize') pageSize: number,
-    @Query('name') query: string,
-    @Query('orderByName') name: OrderDirection,
-    @Query('orderByDateCreated') createdAt: OrderDirection,
+    @Query('search') query: string,
+    @Query('sort') sort: GroupSort,
     @Req() req,
   ) {
     const routeName = `${req.protocol}://${req.get('host')}${req.path}`;
+
     const options = {
       page,
       pageSize,
-      filter: { name: query },
-      order: [
-        { column: 'name', direction: name },
-        { column: 'createdAt', direction: createdAt },
-      ],
+      search: query ?? '',
+      filter: {},
+      order: [],
       routeName,
     };
 
     try {
+      if (sort) {
+        const { column, direction } = extractColumnAndDirection(sort);
+        options.order.push({ column, direction });
+      }
       const result = await this.packagesService.findAll(options);
       return result;
     } catch (error) {

@@ -21,6 +21,24 @@ import { Group } from 'src/groups/entities/group.entity';
 import { Package } from 'src/packages/entities/package.entity';
 import { PAYMENTMODE, PAYMENTSTATUS } from 'src/lib';
 
+export enum IndividualSort {
+  id_asc = 'id_asc',
+  id_desc = 'id_desc',
+  name_asc = 'name_asc',
+  name_desc = 'name_desc',
+  idNumber_asc = 'idNumber_asc',
+  idNumber_desc = 'idNumber_desc',
+  membershipID_asc = 'membershipID_asc',
+  membershipID_desc = 'membershipID_desc',
+  firstName_asc = 'firstName_asc',
+  firstName_desc = 'firstName_desc',
+  lastName_asc = 'lastName_asc',
+  lastName_desc = 'lastName_desc',
+  agent_asc = 'agent_asc',
+  agent_desc = 'agent_desc',
+  createdAt_asc = 'createdAt_asc',
+  createdAt_desc = 'createdAt_desc',
+}
 @Injectable()
 export class IndividualSubscribersService {
   constructor(
@@ -108,7 +126,7 @@ export class IndividualSubscribersService {
         error.message.includes('duplicate key')
       ) {
         throw new ConflictException(
-          'Subscriber with this name already exists.',
+          'Subscriber with this details already exists. Confirm idNumber and phoneOne',
         );
       } else {
         throw error;
@@ -117,21 +135,27 @@ export class IndividualSubscribersService {
   }
 
   async findAll(options: PaginationOptions): Promise<PaginatedResult> {
-    const { filter, order } = options;
+    // const { filter, order } = options;
 
-    const filters = [
-      { membershipID: filter?.membershipID },
-      { lastName: filter?.lastName },
-      { firstName: filter?.firstName },
-    ].filter((filter) => filter[Object.keys(filter)[0]]);
+    // const filters = [
+    //   { membershipID: filter?.membershipID },
+    //   { lastName: filter?.lastName },
+    //   { firstName: filter?.firstName },
+    // ].filter((filter) => filter[Object.keys(filter)[0]]);
 
     return this.paginationService.paginate({
       ...options,
-      order: order.filter((o) => o.direction),
-      filter: filters.length
-        ? filters.reduce((acc, curr) => ({ ...acc, ...curr }))
-        : {},
-      repository: this.subscriberRepository,
+      // order: order.filter((o) => o.direction),
+      // filter: filters.length
+      //   ? filters.reduce((acc, curr) => ({ ...acc, ...curr }))
+      //   : {},
+      repository: this.subscriberRepository
+        .createQueryBuilder('item')
+        .leftJoinAndSelect('item.agent', 'agent')
+        .leftJoinAndSelect('item.facility', 'facility')
+        .leftJoinAndSelect('item.package', 'package')
+        .leftJoinAndSelect('item.group', 'group')
+        .leftJoinAndSelect('item.payments', 'payments'),
     });
   }
 
@@ -151,6 +175,8 @@ export class IndividualSubscribersService {
   ): Promise<{ message: string; status: number; success: boolean }> {
     const subscriber = await this.findOneById(id);
 
+    subscriber.idNumber = data.idNumber ?? subscriber.idNumber;
+    subscriber.idType = data.idType ?? subscriber.idType;
     subscriber.firstName = data.firstName ?? subscriber.firstName;
     subscriber.otherNames = data.otherNames ?? subscriber.otherNames;
     subscriber.lastName = data.lastName ?? subscriber.lastName;
@@ -173,7 +199,9 @@ export class IndividualSubscribersService {
     subscriber.discount = data.discount ?? subscriber.discount;
     subscriber.momoNetwork = data.momoNetwork ?? subscriber.momoNetwork;
     subscriber.momoNumber = data.momoNumber ?? subscriber.momoNumber;
-    subscriber.passportPicture = passportPicture ?? subscriber.passportPicture;
+    subscriber.passportPicture = passportPicture
+      ? passportPicture
+      : subscriber.passportPicture ?? '';
     subscriber.updatedBy = updatedBy;
 
     // Update relationships if necessary
@@ -190,16 +218,26 @@ export class IndividualSubscribersService {
     try {
       await this.subscriberRepository.save(subscriber);
 
-      const payment = await this.subscriberPaymentRepository.findOne({
-        where: { subscriber: subscriber },
-      });
+      // const d = await this.subscriberPaymentRepository.find();
+      // console.log(subscriber);
+      // console.log(d);
+
+      const payment = await this.subscriberPaymentRepository
+        .createQueryBuilder('payment')
+        .leftJoinAndSelect('payment.subscriber', 'subscriber')
+        .where('subscriber.id = :subscriberId', {
+          subscriberId: subscriber.id,
+        })
+        .getOne();
+
+      // console.log(payment);
 
       if (!payment) {
         throw new NotFoundException(
           `Payment not found for FamilyPackage with ID ${id}.`,
         );
       }
-
+      // payment.subscriber = subscriber;
       payment.confirmed = data.paymentMode === PAYMENTMODE.MOMO ? true : false;
       payment.confirmedBy =
         data.paymentMode === PAYMENTMODE.MOMO ? data.momoNetwork : '';
@@ -211,7 +249,7 @@ export class IndividualSubscribersService {
       payment.updatedBy = updatedBy;
 
       await this.subscriberPaymentRepository.save(payment);
-
+      // console.log(ret);
       return {
         message: 'Subscriber has been successfully updated.',
         status: HttpStatus.OK,
