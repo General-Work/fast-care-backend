@@ -28,7 +28,7 @@ export class Bank {
   individualSubscribers: IndividualSubscriber[];
 
   @OneToMany(() => FamilyPackage, (subscriber) => subscriber.bank)
-  familiySubscribers: FamilyPackage[];
+  familySubscribers: FamilyPackage[];
 
   @OneToMany(() => CorporatePackage, (subscriber) => subscriber.bank)
   corporateSubscribers: CorporatePackage[];

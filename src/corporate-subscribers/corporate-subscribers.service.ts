@@ -115,6 +115,7 @@ export class CorporateSubscribersService {
         .createQueryBuilder('item')
         .leftJoinAndSelect('item.agent', 'agent')
         .leftJoinAndSelect('item.corporatePackage', 'corporatePackage')
+        .leftJoinAndMapOne('corporatePackage.bank', Bank, 'bank', 'bank.id = corporatePackage.bank')
         .leftJoinAndMapMany(
           'item.beneficiaries',
           CorporateBeneficiaries,

@@ -113,6 +113,7 @@ export class FamilySubscribersService {
         .createQueryBuilder('item')
         .leftJoinAndSelect('item.agent', 'agent')
         .leftJoinAndSelect('item.familyPackage', 'familyPackage')
+        .leftJoinAndMapOne('familyPackage.bank', Bank, 'bank', 'bank.id = familyPackage.bank')
         .leftJoinAndMapMany(
           'item.beneficiaries',
           FamilyBeneficiaries,

@@ -53,7 +53,10 @@ export class FamilyPackage {
   @OneToMany(() => FamilySubscriberPayment, (payment) => payment.familyPackage)
   payments: FamilySubscriberPayment[];
 
-  @ManyToOne(() => Bank, { eager: true, nullable: true })
+  @ManyToOne(() => Bank, (bank) => bank.familySubscribers, {
+    eager: true,
+    nullable: true,
+  })
   bank: Bank;
 
   @Column({ nullable: true })

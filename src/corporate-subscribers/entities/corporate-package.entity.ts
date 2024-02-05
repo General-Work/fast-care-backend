@@ -34,7 +34,10 @@ export class CorporatePackage {
   @Column({ default: '' })
   CAGDStaffID: string;
 
-  @ManyToOne(() => Bank, { eager: true, nullable: true })
+  @ManyToOne(() => Bank, (bank) => bank.corporateSubscribers, {
+    eager: true,
+    nullable: true,
+  })
   bank: Bank;
 
   @Column()
