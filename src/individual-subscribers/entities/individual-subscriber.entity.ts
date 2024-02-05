@@ -137,7 +137,7 @@ export class IndividualSubscriber {
   group: Group;
 
   @ManyToOne(() => Bank, { eager: true, nullable: true })
-  bank: Bank;
+  bank: Bank ;
 
   @OneToMany(() => IndividualSubscriberPayment, (payment) => payment.subscriber)
   payments: IndividualSubscriberPayment[];

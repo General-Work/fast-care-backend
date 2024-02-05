@@ -76,6 +76,7 @@ export class GroupsService {
   }
 
   async update(id: number, updateGroupDto: UpdateGroupDto, updatedBy: string) {
+    // console.log(updateGroupDto)
     const group = await this.findOne(id);
 
     if (!group) {

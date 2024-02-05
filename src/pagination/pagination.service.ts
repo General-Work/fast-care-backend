@@ -84,7 +84,7 @@ export class PaginationService {
     if (order) {
       this.applyOrderConditions(queryBuilder, order);
     } else {
-      queryBuilder.orderBy('item.updatedAt', 'ASC');
+      queryBuilder.orderBy('item.updatedAt', 'DESC');
     }
 
     if (relations) {

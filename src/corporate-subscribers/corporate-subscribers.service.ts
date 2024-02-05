@@ -23,7 +23,7 @@ import { Package } from 'src/packages/entities/package.entity';
 import { Facility } from 'src/facilities/entities/facility.entity';
 import { UpdateCorporateBeneficiaryDto } from './dto/update-corporate-beneficiary.dto';
 import { CreateCorporatePackageDto } from './dto/create-corporate-package.dto';
-import { PAYMENTMODE, PAYMENTSTATUS } from 'src/lib';
+import { MOMONETWORK, PAYMENTMODE, PAYMENTSTATUS } from 'src/lib';
 import { UpdateCorporatePackageDto } from './dto/update-corporate-package.dto';
 import { Bank } from 'src/bank/entities/bank.entity';
 
@@ -304,17 +304,56 @@ export class CorporateSubscribersService {
     newPackage.createdBy = createdBy;
     newPackage.discount = data.discount;
     newPackage.frequency = data.frequency;
-    newPackage.momoNetwork = data.momoNetwork;
-    newPackage.momoNumber = data.momoNumber;
-    newPackage.paymentMode = data.paymentMode;
     newPackage.corporateSubscriber = corporateSubscriber;
-    newPackage.CAGDStaffID = data.CAGDStaffID;
-    newPackage.accountNumber = data.accountNumber;
-    newPackage.chequeNumber = data.chequeNumber;
-    if (data.bank) {
-      const bank = new Bank();
-      bank.id = data.bank;
-      newPackage.bank = bank;
+    newPackage.paymentMode = data.paymentMode;
+
+    if (data.paymentMode === PAYMENTMODE.Cash) {
+      newPackage.momoNetwork = MOMONETWORK.None;
+      newPackage.momoNumber = '';
+      newPackage.CAGDStaffID = '';
+      newPackage.chequeNumber = '';
+      newPackage.accountNumber = '';
+      newPackage.bank = null;
+    } else if (data.paymentMode === PAYMENTMODE.CAGD) {
+      newPackage.momoNetwork = MOMONETWORK.None;
+      newPackage.momoNumber = '';
+      newPackage.CAGDStaffID = data.CAGDStaffID;
+      newPackage.chequeNumber = '';
+      newPackage.accountNumber = '';
+      newPackage.bank = null;
+    } else if (data.paymentMode === PAYMENTMODE.Cheque) {
+      newPackage.momoNetwork = MOMONETWORK.None;
+      newPackage.momoNumber = '';
+      newPackage.CAGDStaffID = '';
+      newPackage.chequeNumber = data.chequeNumber;
+      newPackage.accountNumber = '';
+      if (newPackage.bank && data.bank) {
+        newPackage.bank.id = +data.bank;
+      } else if (!newPackage.bank && data.bank) {
+        const bank = new Bank();
+        bank.id = +data.bank;
+        newPackage.bank = bank;
+      }
+    } else if (data.paymentMode === PAYMENTMODE.MOMO) {
+      newPackage.momoNetwork = data.momoNetwork;
+      newPackage.momoNumber = data.momoNumber;
+      newPackage.CAGDStaffID = '';
+      newPackage.chequeNumber = '';
+      newPackage.accountNumber = '';
+      newPackage.bank = null;
+    } else if (data.paymentMode === PAYMENTMODE.StandingOrder) {
+      newPackage.momoNetwork = MOMONETWORK.None;
+      newPackage.momoNumber = '';
+      newPackage.CAGDStaffID = '';
+      newPackage.chequeNumber = '';
+      newPackage.accountNumber = data.accountNumber;
+      if (newPackage.bank && data.bank) {
+        newPackage.bank.id = +data.bank;
+      } else if (!newPackage.bank && data.bank) {
+        const bank = new Bank();
+        bank.id = +data.bank;
+        newPackage.bank = bank;
+      }
     }
 
     try {
@@ -373,22 +412,63 @@ export class CorporateSubscribersService {
       data.amountToDebit ?? existingPackage.amountToDebit;
     existingPackage.discount = data.discount ?? existingPackage.discount;
     existingPackage.frequency = data.frequency ?? existingPackage.frequency;
-    existingPackage.momoNetwork =
-      data.momoNetwork ?? existingPackage.momoNetwork;
-    existingPackage.momoNumber = data.momoNumber ?? existingPackage.momoNumber;
+
     existingPackage.paymentMode =
       data.paymentMode ?? existingPackage.paymentMode;
+    existingPackage.updateBy = updatedBy;
 
-    existingPackage.CAGDStaffID =
-      data.CAGDStaffID ?? existingPackage.CAGDStaffID;
-    existingPackage.accountNumber =
-      data.accountNumber ?? existingPackage.accountNumber;
-    existingPackage.chequeNumber =
-      data.chequeNumber ?? existingPackage.chequeNumber;
-    if (data.bank) {
-      const bank = new Bank();
-      bank.id = data.bank;
-      existingPackage.bank = bank;
+    if (data.paymentMode === PAYMENTMODE.Cash) {
+      existingPackage.momoNetwork = MOMONETWORK.None;
+      existingPackage.momoNumber = '';
+      existingPackage.CAGDStaffID = '';
+      existingPackage.chequeNumber = '';
+      existingPackage.accountNumber = '';
+      existingPackage.bank = null;
+    } else if (data.paymentMode === PAYMENTMODE.CAGD) {
+      existingPackage.momoNetwork = MOMONETWORK.None;
+      existingPackage.momoNumber = '';
+      existingPackage.CAGDStaffID =
+        data.CAGDStaffID ?? existingPackage.CAGDStaffID;
+      existingPackage.chequeNumber = '';
+      existingPackage.accountNumber = '';
+      existingPackage.bank = null;
+    } else if (data.paymentMode === PAYMENTMODE.Cheque) {
+      existingPackage.momoNetwork = MOMONETWORK.None;
+      existingPackage.momoNumber = '';
+      existingPackage.CAGDStaffID = '';
+      existingPackage.chequeNumber =
+        data.chequeNumber ?? existingPackage.chequeNumber;
+      existingPackage.accountNumber = '';
+      if (existingPackage.bank && data.bank) {
+        existingPackage.bank.id = +data.bank ?? existingPackage.bank.id;
+      } else if (!existingPackage.bank && data.bank) {
+        const bank = new Bank();
+        bank.id = +data.bank;
+        existingPackage.bank = bank;
+      }
+    } else if (data.paymentMode === PAYMENTMODE.MOMO) {
+      existingPackage.momoNetwork =
+        data.momoNetwork ?? existingPackage.momoNetwork;
+      existingPackage.momoNumber =
+        data.momoNumber ?? existingPackage.momoNumber;
+      existingPackage.CAGDStaffID = '';
+      existingPackage.chequeNumber = '';
+      existingPackage.accountNumber = '';
+      existingPackage.bank = null;
+    } else if (data.paymentMode === PAYMENTMODE.StandingOrder) {
+      existingPackage.momoNetwork = MOMONETWORK.None;
+      existingPackage.momoNumber = '';
+      existingPackage.CAGDStaffID = '';
+      existingPackage.chequeNumber = '';
+      existingPackage.accountNumber =
+        data.accountNumber ?? existingPackage.accountNumber;
+      if (existingPackage.bank && data.bank) {
+        existingPackage.bank.id = +data.bank ?? existingPackage.bank.id;
+      } else if (!existingPackage.bank && data.bank) {
+        const bank = new Bank();
+        bank.id = +data.bank;
+        existingPackage.bank = bank;
+      }
     }
 
     try {

@@ -19,7 +19,7 @@ import { Staff } from 'src/staff/entities/staff.entity';
 import { Facility } from 'src/facilities/entities/facility.entity';
 import { Group } from 'src/groups/entities/group.entity';
 import { Package } from 'src/packages/entities/package.entity';
-import { PAYMENTMODE, PAYMENTSTATUS } from 'src/lib';
+import { MOMONETWORK, PAYMENTMODE, PAYMENTSTATUS } from 'src/lib';
 import { Bank } from 'src/bank/entities/bank.entity';
 
 export enum IndividualSort {
@@ -99,24 +99,67 @@ export class IndividualSubscribersService {
     subscriber.lastName = data.lastName;
     subscriber.maritalStatus = data.maritalStatus;
     subscriber.membershipID = await this.generateStaffCode();
-    subscriber.momoNetwork = data.momoNetwork ?? null;
-    subscriber.momoNumber = data.momoNumber ?? null;
+    // subscriber.momoNetwork = data.momoNetwork ?? null;
+    // subscriber.momoNumber = data.momoNumber ?? null;
     subscriber.occupation = data.occupation;
     subscriber.otherNames = data.otherNames ?? '';
     subscriber.package = newPackage;
 
-    subscriber.CAGDStaffID = data.CAGDStaffID;
-    subscriber.chequeNumber = data.chequeNumber;
-    subscriber.accountNumber = data.accountNumber;
+    // subscriber.CAGDStaffID = data.CAGDStaffID;
+    // subscriber.chequeNumber = data.chequeNumber;
+    // subscriber.accountNumber = data.accountNumber;
     subscriber.passportPicture = passportPicture;
-    subscriber.paymentMode = data.paymentMode;
     subscriber.phoneOne = data.phoneOne;
     subscriber.phoneTwo = data.phoneTwo ?? '';
+    subscriber.paymentMode = data.paymentMode;
 
-    if (data.bank) {
-      const bank = new Bank();
-      bank.id = +data.bank;
-      subscriber.bank = bank;
+    if (data.paymentMode === PAYMENTMODE.Cash) {
+      subscriber.momoNetwork = MOMONETWORK.None;
+      subscriber.momoNumber = '';
+      subscriber.CAGDStaffID = '';
+      subscriber.chequeNumber = '';
+      subscriber.accountNumber = '';
+      subscriber.bank = null;
+    } else if (data.paymentMode === PAYMENTMODE.CAGD) {
+      subscriber.momoNetwork = MOMONETWORK.None;
+      subscriber.momoNumber = '';
+      subscriber.CAGDStaffID = data.CAGDStaffID;
+      subscriber.chequeNumber = '';
+      subscriber.accountNumber = '';
+      subscriber.bank = null;
+    } else if (data.paymentMode === PAYMENTMODE.Cheque) {
+      subscriber.momoNetwork = MOMONETWORK.None;
+      subscriber.momoNumber = '';
+      subscriber.CAGDStaffID = '';
+      subscriber.chequeNumber = data.chequeNumber;
+      subscriber.accountNumber = '';
+      if (subscriber.bank && data.bank) {
+        subscriber.bank.id = +data.bank;
+      } else if (!subscriber.bank && data.bank) {
+        const bank = new Bank();
+        bank.id = +data.bank;
+        subscriber.bank = bank;
+      }
+    } else if (data.paymentMode === PAYMENTMODE.MOMO) {
+      subscriber.momoNetwork = data.momoNetwork;
+      subscriber.momoNumber = data.momoNumber;
+      subscriber.CAGDStaffID = '';
+      subscriber.chequeNumber = '';
+      subscriber.accountNumber = '';
+      subscriber.bank = null;
+    } else if (data.paymentMode === PAYMENTMODE.StandingOrder) {
+      subscriber.momoNetwork = MOMONETWORK.None;
+      subscriber.momoNumber = '';
+      subscriber.CAGDStaffID = '';
+      subscriber.chequeNumber = '';
+      subscriber.accountNumber = data.accountNumber;
+      if (subscriber.bank && data.bank) {
+        subscriber.bank.id = +data.bank;
+      } else if (!subscriber.bank && data.bank) {
+        const bank = new Bank();
+        bank.id = +data.bank;
+        subscriber.bank = bank;
+      }
     }
 
     try {
@@ -146,20 +189,8 @@ export class IndividualSubscribersService {
   }
 
   async findAll(options: PaginationOptions): Promise<PaginatedResult> {
-    // const { filter, order } = options;
-
-    // const filters = [
-    //   { membershipID: filter?.membershipID },
-    //   { lastName: filter?.lastName },
-    //   { firstName: filter?.firstName },
-    // ].filter((filter) => filter[Object.keys(filter)[0]]);
-
     const x = await this.paginationService.paginate({
       ...options,
-      // order: order.filter((o) => o.direction),
-      // filter: filters.length
-      //   ? filters.reduce((acc, curr) => ({ ...acc, ...curr }))
-      //   : {},
       repository: this.subscriberRepository
         .createQueryBuilder('item')
         .leftJoinAndSelect('item.agent', 'agent')
@@ -167,8 +198,6 @@ export class IndividualSubscribersService {
         .leftJoinAndSelect('item.package', 'package')
         .leftJoinAndSelect('item.group', 'group')
         .leftJoinAndSelect('item.bank', 'bank'),
-
-      // .leftJoinAndSelect('item.payments', 'payments'),
     });
 
     return x;
@@ -190,6 +219,8 @@ export class IndividualSubscribersService {
   ): Promise<{ message: string; status: number; success: boolean }> {
     const subscriber = await this.findOneById(id);
 
+    // console.log('data', { id, data, passportPicture, updatedBy });
+
     subscriber.idNumber = data.idNumber ?? subscriber.idNumber;
     subscriber.idType = data.idType ?? subscriber.idType;
     subscriber.firstName = data.firstName ?? subscriber.firstName;
@@ -209,57 +240,98 @@ export class IndividualSubscribersService {
       data.emergencyPersonPhone ?? subscriber.emergencyPersonPhone;
     subscriber.hasNHIS = data.hasNHIS ?? subscriber.hasNHIS;
     subscriber.NHISNumber = data.NHISNumber ?? subscriber.NHISNumber;
-    subscriber.paymentMode = data.paymentMode ?? subscriber.paymentMode;
     subscriber.frequency = data.frequency ?? subscriber.frequency;
     subscriber.discount = data.discount ?? subscriber.discount;
-    subscriber.momoNetwork = data.momoNetwork ?? subscriber.momoNetwork;
-    subscriber.momoNumber = data.momoNumber ?? subscriber.momoNumber;
     subscriber.passportPicture = passportPicture
       ? passportPicture
       : subscriber.passportPicture ?? '';
     subscriber.updatedBy = updatedBy;
 
-    subscriber.CAGDStaffID = data.CAGDStaffID ?? subscriber.CAGDStaffID;
-    subscriber.chequeNumber = data.chequeNumber ?? subscriber.chequeNumber;
-    subscriber.accountNumber = data.accountNumber ?? subscriber.accountNumber;
-
-    if (data.bank) {
-      subscriber.bank.id = +data.bank;
+    subscriber.paymentMode = data.paymentMode ?? subscriber.paymentMode;
+    if (data.paymentMode === PAYMENTMODE.Cash) {
+      subscriber.momoNetwork = MOMONETWORK.None;
+      subscriber.momoNumber = '';
+      subscriber.CAGDStaffID = '';
+      subscriber.chequeNumber = '';
+      subscriber.accountNumber = '';
+      subscriber.bank = null;
+    } else if (data.paymentMode === PAYMENTMODE.CAGD) {
+      subscriber.momoNetwork = MOMONETWORK.None;
+      subscriber.momoNumber = '';
+      subscriber.CAGDStaffID = data.CAGDStaffID ?? subscriber.CAGDStaffID;
+      subscriber.chequeNumber = '';
+      subscriber.accountNumber = '';
+      subscriber.bank = null;
+    } else if (data.paymentMode === PAYMENTMODE.Cheque) {
+      subscriber.momoNetwork = MOMONETWORK.None;
+      subscriber.momoNumber = '';
+      subscriber.CAGDStaffID = '';
+      subscriber.chequeNumber = data.chequeNumber ?? subscriber.chequeNumber;
+      subscriber.accountNumber = '';
+      if (subscriber.bank && data.bank) {
+        subscriber.bank.id = +data.bank ?? subscriber.bank.id;
+      } else if (!subscriber.bank && data.bank) {
+        const bank = new Bank();
+        bank.id = +data.bank;
+        subscriber.bank = bank;
+      }
+    } else if (data.paymentMode === PAYMENTMODE.MOMO) {
+      subscriber.momoNetwork = data.momoNetwork ?? subscriber.momoNetwork;
+      subscriber.momoNumber = data.momoNumber ?? subscriber.momoNumber;
+      subscriber.CAGDStaffID = '';
+      subscriber.chequeNumber = '';
+      subscriber.accountNumber = '';
+      subscriber.bank = null;
+    } else if (data.paymentMode === PAYMENTMODE.StandingOrder) {
+      subscriber.momoNetwork = MOMONETWORK.None;
+      subscriber.momoNumber = '';
+      subscriber.CAGDStaffID = '';
+      subscriber.chequeNumber = '';
+      subscriber.accountNumber = data.accountNumber ?? subscriber.accountNumber;
+      if (subscriber.bank && data.bank) {
+        subscriber.bank.id = +data.bank ?? subscriber.bank.id;
+      } else if (!subscriber.bank && data.bank) {
+        const bank = new Bank();
+        bank.id = +data.bank;
+        subscriber.bank = bank;
+      }
     }
+
     // Update relationships if necessary
     if (data.facility) {
       subscriber.facility.id = +data.facility;
-    }
-    if (data.group) {
-      subscriber.group.id = +data.group;
     }
     if (data.package) {
       subscriber.package.id = +data.package;
     }
 
+    if (subscriber.group && data.group) {
+      subscriber.group.id = +data.group;
+    } else if (!subscriber.group && data.group) {
+      const group = new Group();
+      group.id = +data.group;
+      subscriber.group = group;
+    }
+    // console.log(data);
+    // console.log(subscriber);
+
     try {
       await this.subscriberRepository.save(subscriber);
-
-      // const d = await this.subscriberPaymentRepository.find();
-      // console.log(subscriber);
-      // console.log(d);
 
       const payment = await this.subscriberPaymentRepository
         .createQueryBuilder('payment')
         .leftJoinAndSelect('payment.subscriber', 'subscriber')
         .where('subscriber.id = :subscriberId', {
           subscriberId: subscriber.id,
-        })
+        }).orderBy('payment.id', 'DESC')
         .getOne();
-
-      // console.log(payment);
 
       if (!payment) {
         throw new NotFoundException(
           `Payment not found for FamilyPackage with ID ${id}.`,
         );
       }
-      // payment.subscriber = subscriber;
+
       payment.confirmed = data.paymentMode === PAYMENTMODE.MOMO ? true : false;
       payment.confirmedBy =
         data.paymentMode === PAYMENTMODE.MOMO ? data.momoNetwork : '';
