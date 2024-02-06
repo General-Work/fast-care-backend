@@ -31,6 +31,8 @@ export enum UserSort {
   username_desc = 'username_desc',
   createdAt_asc = 'createdAt_asc',
   createdAt_desc = 'createdAt_desc',
+  active_asc = 'active_asc',
+  active_desc = 'active_desc',
   id_asc = 'id_asc',
   id_desc = 'id_desc',
 }
@@ -63,6 +65,7 @@ export class UsersService {
     user.password = password;
     user.createdBy = createBy;
     user.passwordResetRequired = true;
+    user.active = true;
 
     const queryRunner =
       this.userRepository.manager.connection.createQueryRunner();
@@ -109,9 +112,16 @@ export class UsersService {
   }
 
   async findAll(options: PaginationOptions): Promise<PaginatedResult> {
+    const { filter } = options;
+    const filters = filter.active !== null ? filter : {}
+    
+    // console.log(filters)
+    // console.log(filters)
     const res = await this.paginationService.paginate({
       ...options,
+      filter: filters,
       repository: this.userRepository,
+      relations: ['staff', 'role'],
     });
 
     const d = {
@@ -135,7 +145,10 @@ export class UsersService {
 
   async findOneById(id: number) {
     // console.log(id);
-    const group = await this.userRepository.findOneBy({ id });
+    const group = await this.userRepository.findOne({
+      where: { id },
+      relations: ['staff', 'role'],
+    });
 
     if (!group) {
       throw new NotFoundException(`User with ID ${id} not found.`);
@@ -198,6 +211,75 @@ export class UsersService {
     return {
       success: true,
       message: 'Successfully changed password',
+    };
+  }
+
+  async resetPassword(id: number, updatedBy: string) {
+    const user = await this.findOneById(id);
+    // console.log(user);
+    const defaultPassword = user.staff.firstName.toLowerCase();
+    user.password = defaultPassword;
+    user.passwordResetRequired = true;
+    user.updatedBy = updatedBy;
+
+    const queryRunner =
+      this.userRepository.manager.connection.createQueryRunner();
+
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      await queryRunner.manager.save(User, user);
+
+      const ret = await this.mailService.sendMail(
+        user.username,
+        'Reset Password',
+        `Your account successfully reset.`,
+        `<strong>Your default password is:</strong> ${defaultPassword} <br/> <span>Don't forget to change this password after a successfully login to the system for the first time.</sapn>`,
+      );
+
+      if (ret) {
+        await queryRunner.commitTransaction();
+
+        return {
+          message: `Password changed, new password is: ${defaultPassword}`,
+          status: HttpStatus.OK,
+          success: true,
+        };
+      } else {
+        await queryRunner.rollbackTransaction();
+        throw new Error('Email sending failed.');
+      }
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+    } finally {
+      await queryRunner.release();
+    }
+  }
+
+  async disableUser(id: number, updatedBy: string) {
+    const user = await this.findOneById(id);
+    user.active = false;
+    user.updatedBy = updatedBy;
+    await this.userRepository.save(user);
+
+    return {
+      message: 'User has been successfully disabled.',
+      status: HttpStatus.OK,
+      success: true,
+    };
+  }
+
+  async enableUser(id: number, updatedBy: string) {
+    const user = await this.findOneById(id);
+    user.active = true;
+    user.updatedBy = updatedBy;
+    await this.userRepository.save(user);
+
+    return {
+      message: 'User has been successfully enabled.',
+      status: HttpStatus.OK,
+      success: true,
     };
   }
 

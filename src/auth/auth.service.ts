@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { comparePasswords } from 'src/lib';
 import { User } from 'src/users/entities/user.entity';
@@ -13,18 +13,25 @@ export class AuthService {
   async validateUser(username: string, password: string) {
     const user = await this.userService.findOneWithUsername(username);
 
-    if (user && user.passwordResetRequired) {
-      const { password, ...result } = user;
-      return result;
-    } else if (
-      user &&
-      !user.passwordResetRequired &&
-      comparePasswords(password, user.password)
-    ) {
-      const { password, ...result } = user;
-      return result;
+    if (!user) {
+      throw new BadRequestException('User not found');
     }
-    return null;
+
+    if (!user.active) {
+      throw new BadRequestException(
+        'Your account is disabled. Contact your Administrator',
+      );
+    }
+
+    if (user.passwordResetRequired) {
+      const { password, ...result } = user;
+      return result;
+    } else if (comparePasswords(password, user.password)) {
+      const { password, ...result } = user;
+      return result;
+    } else {
+      return null;
+    }
   }
 
   async login(user: User) {
@@ -38,7 +45,7 @@ export class AuthService {
       staffDbId: user.staff.id,
       staffCode: user.staff.staffCode,
       roleId: user.role.id,
-      // role: user.role, 
+      // role: user.role,
 
       sub: {
         name: `${user.staff.firstName} ${user.staff.otherNames ?? ''} ${

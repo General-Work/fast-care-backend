@@ -57,6 +57,12 @@ export class UsersController {
     description: 'Search column',
   })
   @ApiQuery({
+    name: 'active',
+    required: false,
+    type: Boolean,
+    description: 'Filter active',
+  })
+  @ApiQuery({
     name: 'sort',
     required: false,
     enum: UserSort,
@@ -72,18 +78,20 @@ export class UsersController {
     @Query('page') page: number,
     @Query('pageSize') pageSize: number,
     @Query('search') query: string,
+    @Query('active') active: string,
     @Query('sort') sort: UserSort,
     @Req() req,
   ) {
     const routeName = `${req.protocol}://${req.get('host')}${req.path}`;
 
-    // console.log(req.userDetails)
+    const filter =
+      active && active === 'true' ? true : active === 'false' ? false : null;
 
     const options = {
       page,
       pageSize,
       search: query ?? '',
-      filter: {},
+      filter: { active: filter },
       order: [],
       routeName,
     };
@@ -127,6 +135,20 @@ export class UsersController {
       req.userDetails.userId,
       req.userDetails.user,
     );
+  }
+
+  @Patch('reset-password/:id')
+  resetPassword(@Param('id') id: string, @Req() req: Request) {
+    return this.usersService.resetPassword(+id, req.userDetails.user);
+  }
+
+  @Patch('disable-user/:id')
+  disableUser(@Param('id') id: string, @Req() req: Request) {
+    return this.usersService.disableUser(+id, req.userDetails.user);
+  }
+  @Patch('enable-user/:id')
+  enableUser(@Param('id') id: string, @Req() req: Request) {
+    return this.usersService.enableUser(+id, req.userDetails.user);
   }
 
   @Delete(':id')

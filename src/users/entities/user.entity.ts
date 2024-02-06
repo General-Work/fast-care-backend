@@ -25,6 +25,9 @@ export class User {
   @ManyToOne(() => Role, (role) => role.users)
   role: Role;
 
+  @Column()
+  active: boolean
+
   @ManyToOne(() => Facility, (facility) => facility.users)
   facility: Facility;
 
