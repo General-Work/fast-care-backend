@@ -29,7 +29,7 @@ export class Facility {
   @Column({ nullable: true })
   gpsAdress: string;
 
-  @OneToMany(() => User, (user) => user.role)
+  @OneToMany(() => User, (user) => user.facility)
   users: User[];
 
   @OneToMany(() => IndividualSubscriber, (subscriber) => subscriber.facility)

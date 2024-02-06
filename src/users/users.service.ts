@@ -121,7 +121,7 @@ export class UsersService {
       ...options,
       filter: filters,
       repository: this.userRepository,
-      relations: ['staff', 'role'],
+      relations: ['staff', 'role', 'facility'],
     });
 
     const d = {
@@ -147,7 +147,7 @@ export class UsersService {
     // console.log(id);
     const group = await this.userRepository.findOne({
       where: { id },
-      relations: ['staff', 'role'],
+      relations: ['staff', 'role', 'facility'],
     });
 
     if (!group) {

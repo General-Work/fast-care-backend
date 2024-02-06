@@ -26,12 +26,15 @@ export class User {
   role: Role;
 
   @Column()
-  active: boolean
+  active: boolean;
 
-  @ManyToOne(() => Facility, (facility) => facility.users)
+  @ManyToOne(() => Facility, (facility) => facility.users, {
+    cascade: true,
+    eager: true,
+  })
   facility: Facility;
 
-  @OneToOne(() => Staff, (staff) => staff.user, {cascade: true})
+  @OneToOne(() => Staff, (staff) => staff.user, { cascade: true })
   staff: Staff;
 
   @Column({ default: false })
