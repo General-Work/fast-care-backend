@@ -2,15 +2,6 @@ import { ApiProperty } from '@nestjs/swagger';
 import { IsNotEmpty, IsNumber, IsString } from 'class-validator';
 
 export class ChangePasswordDto {
-  @IsNotEmpty({ message: 'Staff ID can not be null' })
-  @IsNumber()
-  @ApiProperty({
-    description: 'Staff ID of the group',
-    example: '1',
-    required: true,
-    type: Number,
-  })
-  id: number;
 
   @IsNotEmpty({ message: 'Old password can not be null' })
   @IsString({ message: 'Old password is required' })

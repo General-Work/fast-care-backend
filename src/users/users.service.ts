@@ -134,6 +134,7 @@ export class UsersService {
   }
 
   async findOneById(id: number) {
+    // console.log(id);
     const group = await this.userRepository.findOneBy({ id });
 
     if (!group) {
@@ -177,10 +178,11 @@ export class UsersService {
     };
   }
 
-  async changePassword(data: ChangePasswordDto, updatedBy: string) {
-    const user = await this.findOneById(data.id);
+  async changePassword(data: ChangePasswordDto, id: number, updatedBy: string) {
+    const user = await this.findOneById(id);
+    // console.log(user)
 
-    const passwordsMatch = user.passwordResetRequired
+    const passwordsMatch = !user.passwordResetRequired
       ? comparePasswords(data.oldPassword, user.password)
       : user.password === data.oldPassword;
 

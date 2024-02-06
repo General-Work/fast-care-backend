@@ -9,6 +9,7 @@ import {
   UseGuards,
   Req,
   Query,
+  Put,
 } from '@nestjs/common';
 import { UserSort, UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -16,8 +17,9 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { JwtGuard } from 'src/auth/gurads/jwt-auth.guard';
-import { OrderDirection } from 'src/pagination/pagination.service';
+// import { OrderDirection } from 'src/pagination/pagination.service';
 import { extractColumnAndDirection } from 'src/lib';
+import { Request } from 'express';
 
 @ApiTags('Users')
 @UseGuards(JwtGuard)
@@ -113,14 +115,18 @@ export class UsersController {
     return this.usersService.update(+id, updateUserDto, req.userDetails.user);
   }
 
-  @Patch('change-password')
+  @Put('change-password')
   @ApiResponse({
     status: 201,
     description: 'Successfully changed password.',
   })
   @ApiResponse({ status: 400, description: 'Bad Request' })
-  changePassword(@Body() data: ChangePasswordDto, @Req() req) {
-    return this.usersService.changePassword(data, req.userDetails.user);
+  changePassword(@Body() data: ChangePasswordDto, @Req() req: Request) {
+    return this.usersService.changePassword(
+      data,
+      req.userDetails.userId,
+      req.userDetails.user,
+    );
   }
 
   @Delete(':id')

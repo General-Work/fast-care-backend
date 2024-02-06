@@ -17,7 +17,7 @@ export class ExtractUserMiddleware implements NestMiddleware {
             message: 'Token verification failed',
           });
       }
-
+      // console.log(user)
       req.userDetails = user;
       next();
     })(req, res, next);
