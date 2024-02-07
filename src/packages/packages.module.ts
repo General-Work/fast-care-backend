@@ -9,5 +9,6 @@ import { PaginationModule } from 'src/pagination/pagination.module';
   imports: [TypeOrmModule.forFeature([Package]), PaginationModule],
   controllers: [PackagesController],
   providers: [PackagesService],
+  exports: [PackagesService],
 })
 export class PackagesModule {}

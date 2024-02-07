@@ -19,8 +19,8 @@ async function bootstrap() {
     swaggerOptions: { tagsSorter: 'alpha' },
   });
 
-  await app.listen(process.env.PORT,"0.0.0.0");
-  // await app.listen(process.env.PORT);
+  // await app.listen(process.env.PORT,"0.0.0.0");
+  await app.listen(process.env.PORT);
 
 }
 bootstrap();

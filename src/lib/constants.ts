@@ -62,7 +62,7 @@ export enum TITLE {
 export enum MOMONETWORK {
   MTN = 'MTN',
   VODAFONE = 'VODAFONE',
-  AIRTELTIGO = 'AIRTELTIGO',
+  // AIRTELTIGO = 'AIRTELTIGO',
   None = '',
 }
 

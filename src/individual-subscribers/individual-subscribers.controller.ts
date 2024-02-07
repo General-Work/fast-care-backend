@@ -31,10 +31,14 @@ import {
 import { Multer } from 'multer';
 import { Request } from 'express';
 import { JwtGuard } from 'src/auth/gurads/jwt-auth.guard';
-import { convertFileToBase64, extractColumnAndDirection } from 'src/lib';
+import {
+  convertFileToBase64,
+  extractColumnAndDirection,
+  getPaginationParams,
+} from 'src/lib';
 
 @ApiTags('Individual Subscribers')
-// @UseGuards(JwtGuard)
+@UseGuards(JwtGuard)
 @Controller('individual-subscribers')
 export class IndividualSubscribersController {
   constructor(
@@ -111,17 +115,18 @@ export class IndividualSubscribersController {
     @Query('pageSize') pageSize: number,
     @Query('search') query: string,
     @Query('sort') sort: IndividualSort,
-    @Req() req,
+    @Req() req: Request,
   ) {
-    const routeName = `${req.protocol}://${req.get('host')}${req.path}`;
-
+    const paginate = getPaginationParams(req);
     const options = {
       page,
       pageSize,
       search: query ?? '',
       filter: {},
       order: [],
-      routeName,
+      routeName: paginate.routeName,
+      path: paginate.path,
+      query: paginate.query,
     };
 
     try {

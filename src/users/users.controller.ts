@@ -18,7 +18,7 @@ import { ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { JwtGuard } from 'src/auth/gurads/jwt-auth.guard';
 // import { OrderDirection } from 'src/pagination/pagination.service';
-import { extractColumnAndDirection } from 'src/lib';
+import { extractColumnAndDirection, getPaginationParams } from 'src/lib';
 import { Request } from 'express';
 
 @ApiTags('Users')
@@ -80,10 +80,9 @@ export class UsersController {
     @Query('search') query: string,
     @Query('active') active: string,
     @Query('sort') sort: UserSort,
-    @Req() req,
+    @Req() req: Request,
   ) {
-    const routeName = `${req.protocol}://${req.get('host')}${req.path}`;
-
+    const paginate = getPaginationParams(req);
     const filter =
       active && active === 'true' ? true : active === 'false' ? false : null;
 
@@ -93,7 +92,9 @@ export class UsersController {
       search: query ?? '',
       filter: { active: filter },
       order: [],
-      routeName,
+      routeName: paginate.routeName,
+      path: paginate.path,
+      query: paginate.query,
     };
 
     try {

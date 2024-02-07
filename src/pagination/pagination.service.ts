@@ -17,6 +17,8 @@ export interface PaginationOptions {
   routeName: string;
   relations?: string[];
   search?: string; // Add search field
+  path: string;
+  query: string;
 }
 
 export interface PageInfo {
@@ -35,6 +37,7 @@ export interface INewPaginate {
   total: number;
   lastPageUrl: string | null;
   firstPageUrl: string | null;
+  path: string;
 }
 
 export interface PaginatedResult {
@@ -55,6 +58,8 @@ export class PaginationService {
       routeName,
       relations,
       search,
+      path,
+      query,
     } = options;
 
     let queryBuilder: SelectQueryBuilder<T>;
@@ -96,11 +101,11 @@ export class PaginationService {
 
     const newPage = +page;
     const nextPageUrl = pageInfo.hasNextPage
-      ? `${routeName}?page=${newPage + 1}&pageSize=${pageSize}`
+      ? this.formatRoute(routeName, newPage + 1, pageSize, query)
       : null;
     const prevPageUrl =
       pageInfo.hasPreviousPage && newPage > 1
-        ? `${routeName}?page=${newPage - 1}&pageSize=${pageSize}`
+        ? this.formatRoute(routeName, newPage - 1, pageSize, query)
         : null;
 
     return {
@@ -112,10 +117,23 @@ export class PaginationService {
         prevPageUrl,
         perPage: pageSize,
         total: totalCount,
-        lastPageUrl: `${routeName}?page=${pageInfo.totalPages}&pageSize=${pageSize}`,
-        firstPageUrl: `${routeName}?page=1&pageSize=${pageSize}`,
+        lastPageUrl: this.formatRoute(
+          routeName,
+          pageInfo.totalPages,
+          pageSize,
+          query,
+        ),
+        firstPageUrl: this.formatRoute(routeName, 1, pageSize, query),
+
+        path,
       },
     };
+  }
+
+  private formatRoute(routeName, page, pageSize, query) {
+    return query
+      ? `${routeName}?page=${page}&pageSize=${pageSize}&${query}`
+      : `${routeName}?page=${page}&pageSize=${pageSize}`;
   }
 
   private createPaginationQueryBuilder<T>(

@@ -1,6 +1,7 @@
 import * as bcryt from 'bcrypt';
 import { SelectQueryBuilder } from 'typeorm';
 import { Multer } from 'multer';
+import { Request } from 'express';
 
 export function generateDefaultPassword(): string {
   const length = 8; // Length of the default password
@@ -57,4 +58,40 @@ export function extractColumnAndDirection(enumValue: string): {
 
 export function convertFileToBase64(file: Multer.File) {
   return `data:${file.mimetype}:base64,${file.buffer.toString('base64')}`;
+}
+
+export function calculateDiscount(amount: number, discount: number) {
+  return discount === 0 ? amount : amount * (discount / 100);
+}
+
+function convertObjectToQueryString(
+  obj: Record<string, any>,
+  deletePage?: boolean,
+): string {
+  if (deletePage) {
+    delete obj.page;
+    delete obj.pageSize;
+  }
+
+  const queryStringParams: string[] = [];
+  for (const [key, value] of Object.entries(obj)) {
+    if (value !== undefined && value !== null) {
+      queryStringParams.push(
+        `${encodeURIComponent(key)}=${encodeURIComponent(value.toString())}`,
+      );
+    }
+  }
+  return queryStringParams.join('&');
+}
+
+export function getPaginationParams(req: Request) {
+  const routeName = `${req.protocol}://${req.get('host')}${req.path}`;
+  const path = `${req.protocol}://${req.get('host')}${req.originalUrl}`;
+  const query = req.query ? convertObjectToQueryString(req.query, true) : null;
+
+  return {
+    routeName,
+    path,
+    query,
+  };
 }

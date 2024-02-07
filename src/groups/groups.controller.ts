@@ -16,7 +16,7 @@ import { UpdateGroupDto } from './dto/update-group.dto';
 import { ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { JwtGuard } from 'src/auth/gurads/jwt-auth.guard';
 import { Request } from 'express';
-import { extractColumnAndDirection } from 'src/lib';
+import { extractColumnAndDirection, getPaginationParams } from 'src/lib';
 
 @ApiTags('Groups')
 @UseGuards(JwtGuard)
@@ -70,17 +70,18 @@ export class GroupsController {
     @Query('pageSize') pageSize: number,
     @Query('search') query: string,
     @Query('sort') sort: GroupSort,
-    @Req() req,
+    @Req() req: Request,
   ) {
-    const routeName = `${req.protocol}://${req.get('host')}${req.path}`;
-
+    const paginate = getPaginationParams(req);
     const options = {
       page,
       pageSize,
       search: query ?? '',
       filter: {},
       order: [],
-      routeName,
+      routeName: paginate.routeName,
+      path: paginate.path,
+      query: paginate.query,
     };
 
     try {

@@ -24,7 +24,7 @@ import { CreateCorporateBeneficiaryDto } from './dto/create-corporate-beneficiar
 import { UpdateCorporateBeneficiaryDto } from './dto/update-corporate-beneficiary.dto';
 import { CreateCorporatePackageDto } from './dto/create-corporate-package.dto';
 import { UpdateCorporatePackageDto } from './dto/update-corporate-package.dto';
-import { extractColumnAndDirection } from 'src/lib';
+import { extractColumnAndDirection, getPaginationParams } from 'src/lib';
 
 @ApiTags('Corporate Subscribers')
 @UseGuards(JwtGuard)
@@ -87,17 +87,18 @@ export class CorporateSubscribersController {
     @Query('pageSize') pageSize: number,
     @Query('search') query: string,
     @Query('sort') sort: CorporateSort,
-    @Req() req,
+    @Req() req: Request,
   ) {
-    const routeName = `${req.protocol}://${req.get('host')}${req.path}`;
-
+    const paginate = getPaginationParams(req);
     const options = {
       page,
       pageSize,
       search: query ?? '',
       filter: {},
       order: [],
-      routeName,
+      routeName: paginate.routeName,
+      path: paginate.path,
+      query: paginate.query,
     };
 
     try {

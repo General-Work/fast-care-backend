@@ -19,8 +19,15 @@ import { Staff } from 'src/staff/entities/staff.entity';
 import { Facility } from 'src/facilities/entities/facility.entity';
 import { Group } from 'src/groups/entities/group.entity';
 import { Package } from 'src/packages/entities/package.entity';
-import { MOMONETWORK, PAYMENTMODE, PAYMENTSTATUS } from 'src/lib';
+import {
+  MOMONETWORK,
+  PAYMENTMODE,
+  PAYMENTSTATUS,
+  calculateDiscount,
+  createMandate,
+} from 'src/lib';
 import { Bank } from 'src/bank/entities/bank.entity';
+import { PackagesService } from 'src/packages/packages.service';
 
 export enum IndividualSort {
   id_asc = 'id_asc',
@@ -48,6 +55,7 @@ export class IndividualSubscribersService {
     @InjectRepository(IndividualSubscriberPayment)
     private readonly subscriberPaymentRepository: Repository<IndividualSubscriberPayment>,
     private readonly paginationService: PaginationService,
+    private readonly packageService: PackagesService,
   ) {}
   async create(
     data: CreateIndividualSubscriberDto,
@@ -99,15 +107,9 @@ export class IndividualSubscribersService {
     subscriber.lastName = data.lastName;
     subscriber.maritalStatus = data.maritalStatus;
     subscriber.membershipID = await this.generateStaffCode();
-    // subscriber.momoNetwork = data.momoNetwork ?? null;
-    // subscriber.momoNumber = data.momoNumber ?? null;
     subscriber.occupation = data.occupation;
     subscriber.otherNames = data.otherNames ?? '';
     subscriber.package = newPackage;
-
-    // subscriber.CAGDStaffID = data.CAGDStaffID;
-    // subscriber.chequeNumber = data.chequeNumber;
-    // subscriber.accountNumber = data.accountNumber;
     subscriber.passportPicture = passportPicture;
     subscriber.phoneOne = data.phoneOne;
     subscriber.phoneTwo = data.phoneTwo ?? '';
@@ -162,30 +164,48 @@ export class IndividualSubscribersService {
       }
     }
 
-    try {
-      await this.subscriberRepository.save(subscriber);
-
-      payment.subscriber = subscriber;
-
-      await this.subscriberPaymentRepository.save(payment);
-
-      return {
-        message: 'Subscriber has been successfully created.',
-        status: HttpStatus.CREATED,
-        success: true,
+    if (data.paymentMode === PAYMENTMODE.MOMO) {
+      const x = {
+        amountToDebit: `${calculateDiscount(
+          (await this.packageService.findOne(+data.package)).amount,
+          +data.discount,
+        )}`,
+        momoNumber: data.momoNumber,
+        momoNetWork: data.momoNetwork,
+        membershipId: "PNS112343103",
+        frequency: data.frequency,
       };
-    } catch (error) {
-      if (
-        error instanceof QueryFailedError &&
-        error.message.includes('duplicate key')
-      ) {
-        throw new ConflictException(
-          'Subscriber with this details already exists. Confirm idNumber and phoneOne',
-        );
-      } else {
-        throw error;
-      }
+      const res = await createMandate(x);
+
+      console.log(res);
     }
+
+    return;
+
+    // try {
+    //   await this.subscriberRepository.save(subscriber);
+
+    //   payment.subscriber = subscriber;
+
+    //   await this.subscriberPaymentRepository.save(payment);
+
+    //   return {
+    //     message: 'Subscriber has been successfully created.',
+    //     status: HttpStatus.CREATED,
+    //     success: true,
+    //   };
+    // } catch (error) {
+    //   if (
+    //     error instanceof QueryFailedError &&
+    //     error.message.includes('duplicate key')
+    //   ) {
+    //     throw new ConflictException(
+    //       'Subscriber with this details already exists. Confirm idNumber and phoneOne',
+    //     );
+    //   } else {
+    //     throw error;
+    //   }
+    // }
   }
 
   async findAll(options: PaginationOptions): Promise<PaginatedResult> {
@@ -323,7 +343,8 @@ export class IndividualSubscribersService {
         .leftJoinAndSelect('payment.subscriber', 'subscriber')
         .where('subscriber.id = :subscriberId', {
           subscriberId: subscriber.id,
-        }).orderBy('payment.id', 'DESC')
+        })
+        .orderBy('payment.id', 'DESC')
         .getOne();
 
       if (!payment) {
