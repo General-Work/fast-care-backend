@@ -95,6 +95,7 @@ export class FamilySubscribersService {
   }
 
   async findAll(options: PaginationOptions) {
+    // console.log(options.page, options.pageSize)/
     // const { filter, order } = options;
 
     // const filters = [
@@ -109,11 +110,17 @@ export class FamilySubscribersService {
       // filter: filters.length
       //   ? filters.reduce((acc, curr) => ({ ...acc, ...curr }))
       //   : {},
+
       repository: this.familyRepository
         .createQueryBuilder('item')
         .leftJoinAndSelect('item.agent', 'agent')
         .leftJoinAndSelect('item.familyPackage', 'familyPackage')
-        .leftJoinAndMapOne('familyPackage.bank', Bank, 'bank', 'bank.id = familyPackage.bank')
+        .leftJoinAndMapOne(
+          'familyPackage.bank',
+          Bank,
+          'bank',
+          'bank.id = familyPackage.bank',
+        )
         .leftJoinAndMapMany(
           'item.beneficiaries',
           FamilyBeneficiaries,

@@ -164,48 +164,48 @@ export class IndividualSubscribersService {
       }
     }
 
-    if (data.paymentMode === PAYMENTMODE.MOMO) {
-      const x = {
-        amountToDebit: `${calculateDiscount(
-          (await this.packageService.findOne(+data.package)).amount,
-          +data.discount,
-        )}`,
-        momoNumber: data.momoNumber,
-        momoNetWork: data.momoNetwork,
-        membershipId: "PNS112343103",
-        frequency: data.frequency,
-      };
-      const res = await createMandate(x);
-
-      console.log(res);
-    }
-
-    return;
-
-    // try {
-    //   await this.subscriberRepository.save(subscriber);
-
-    //   payment.subscriber = subscriber;
-
-    //   await this.subscriberPaymentRepository.save(payment);
-
-    //   return {
-    //     message: 'Subscriber has been successfully created.',
-    //     status: HttpStatus.CREATED,
-    //     success: true,
+    // if (data.paymentMode === PAYMENTMODE.MOMO) {
+    //   const x = {
+    //     amountToDebit: `${calculateDiscount(
+    //       (await this.packageService.findOne(+data.package)).amount,
+    //       +data.discount,
+    //     )}`,
+    //     momoNumber: data.momoNumber,
+    //     momoNetWork: data.momoNetwork,
+    //     membershipId: "PNS112343103",
+    //     frequency: data.frequency,
     //   };
-    // } catch (error) {
-    //   if (
-    //     error instanceof QueryFailedError &&
-    //     error.message.includes('duplicate key')
-    //   ) {
-    //     throw new ConflictException(
-    //       'Subscriber with this details already exists. Confirm idNumber and phoneOne',
-    //     );
-    //   } else {
-    //     throw error;
-    //   }
+    //   const res = await createMandate(x);
+
+    //   console.log(res);
     // }
+
+    // return;
+
+    try {
+      await this.subscriberRepository.save(subscriber);
+
+      payment.subscriber = subscriber;
+
+      await this.subscriberPaymentRepository.save(payment);
+
+      return {
+        message: 'Subscriber has been successfully created.',
+        status: HttpStatus.CREATED,
+        success: true,
+      };
+    } catch (error) {
+      if (
+        error instanceof QueryFailedError &&
+        error.message.includes('duplicate key')
+      ) {
+        throw new ConflictException(
+          'Subscriber with this details already exists. Confirm idNumber and phoneOne',
+        );
+      } else {
+        throw error;
+      }
+    }
   }
 
   async findAll(options: PaginationOptions): Promise<PaginatedResult> {

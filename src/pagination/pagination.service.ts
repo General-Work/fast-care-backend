@@ -71,7 +71,8 @@ export class PaginationService {
         repository,
       );
     } else if (repository instanceof SelectQueryBuilder) {
-      queryBuilder = repository;
+      const skip = (page - 1) * pageSize;
+      queryBuilder = repository.skip(skip).take(pageSize);
     } else {
       throw new Error(
         'Invalid repository type. Must be Repository or SelectQueryBuilder.',
