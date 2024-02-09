@@ -209,19 +209,26 @@ export class IndividualSubscribersService {
   }
 
   async findAll(options: PaginationOptions): Promise<PaginatedResult> {
+    const alias = 'item';
+    const properties = this.subscriberRepository.metadata.columns.map(column => `${alias}.${column.propertyName}`);
+
+    // Filter out 'passportPicture' property
+    const selectedProperties = properties.filter(property => property !== `${alias}.passportPicture`);
+
     const x = await this.paginationService.paginate({
-      ...options,
-      repository: this.subscriberRepository
-        .createQueryBuilder('item')
-        .leftJoinAndSelect('item.agent', 'agent')
-        .leftJoinAndSelect('item.facility', 'facility')
-        .leftJoinAndSelect('item.package', 'package')
-        .leftJoinAndSelect('item.group', 'group')
-        .leftJoinAndSelect('item.bank', 'bank'),
+        ...options,
+        repository: this.subscriberRepository
+            .createQueryBuilder(alias)
+            .select(selectedProperties)
+            .leftJoinAndSelect(`${alias}.agent`, 'agent')
+            .leftJoinAndSelect(`${alias}.facility`, 'facility')
+            .leftJoinAndSelect(`${alias}.package`, 'package')
+            .leftJoinAndSelect(`${alias}.group`, 'group')
+            .leftJoinAndSelect(`${alias}.bank`, 'bank'),
     });
 
     return x;
-  }
+}
 
   async findOneById(id: number) {
     const subscriber = await this.subscriberRepository.findOneBy({ id });
