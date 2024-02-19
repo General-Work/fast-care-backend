@@ -4,7 +4,10 @@ import { UpdatePaymentDto } from './dto/update-payment.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IndividualSubscriberPayment } from 'src/individual-subscribers/entities/individual-subscriber-payment.entity';
 import { Repository } from 'typeorm';
-import { PaginationService } from 'src/pagination/pagination.service';
+import {
+  PaginationOptions,
+  PaginationService,
+} from 'src/pagination/pagination.service';
 import { CorporateSubscriberPayment } from 'src/corporate-subscribers/entities/corporate-payment.entity';
 import { Payment } from './entities/payment.entity';
 import { IPayment } from 'src/lib';
@@ -20,7 +23,7 @@ export class PaymentsService {
     private readonly paymentRepository: Repository<Payment>,
   ) {}
 
-  async findAll() {
+  async findAll(options: PaginationOptions) {
     // return await this.indivialRepository
     //   .createQueryBuilder('payment')
     //   .select([
@@ -73,7 +76,10 @@ export class PaymentsService {
     //   ])
     //   .leftJoin('payment.subscriber', 'subscriber')
     //   .getMany();
-    return this.paymentRepository.find()
+    return this.paginationService.paginate({
+      ...options,
+      repository: this.paymentRepository,
+    });
   }
 
   async makePayment(data: IPayment) {
