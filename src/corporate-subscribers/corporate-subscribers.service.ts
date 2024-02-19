@@ -23,9 +23,19 @@ import { Package } from 'src/packages/entities/package.entity';
 import { Facility } from 'src/facilities/entities/facility.entity';
 import { UpdateCorporateBeneficiaryDto } from './dto/update-corporate-beneficiary.dto';
 import { CreateCorporatePackageDto } from './dto/create-corporate-package.dto';
-import { MOMONETWORK, PAYMENTMODE, PAYMENTSTATUS } from 'src/lib';
+import {
+  IPayment,
+  MANDATESTATUS,
+  MOMONETWORK,
+  PAYMENTMODE,
+  PAYMENTSTATUS,
+  SUBSCRIBERTYPE,
+  calculateDiscount,
+} from 'src/lib';
 import { UpdateCorporatePackageDto } from './dto/update-corporate-package.dto';
 import { Bank } from 'src/bank/entities/bank.entity';
+import { v4 as uuidv4 } from 'uuid';
+import { PaymentsService } from 'src/payments/payments.service';
 
 export enum CorporateSort {
   id_asc = 'id_asc',
@@ -54,6 +64,7 @@ export class CorporateSubscribersService {
     @InjectRepository(CorporateSubscriberPayment)
     private readonly corporateSubscriberPaymentRepository: Repository<CorporateSubscriberPayment>,
     private readonly paginationService: PaginationService,
+    private readonly paymentService: PaymentsService,
   ) {}
 
   async create(
@@ -115,7 +126,12 @@ export class CorporateSubscribersService {
         .createQueryBuilder('item')
         .leftJoinAndSelect('item.agent', 'agent')
         .leftJoinAndSelect('item.corporatePackage', 'corporatePackage')
-        .leftJoinAndMapOne('corporatePackage.bank', Bank, 'bank', 'bank.id = corporatePackage.bank')
+        .leftJoinAndMapOne(
+          'corporatePackage.bank',
+          Bank,
+          'bank',
+          'bank.id = corporatePackage.bank',
+        )
         .leftJoinAndMapMany(
           'item.beneficiaries',
           CorporateBeneficiaries,
@@ -297,101 +313,235 @@ export class CorporateSubscribersService {
     return corporate.beneficiaries;
   }
 
+  // async createPackage(data: CreateCorporatePackageDto, createdBy: string) {
+  //   const corporateSubscriber = await this.findOneById(data.corporateId);
+
+  //   const newPackage = new CorporatePackage();
+  //   newPackage.amountToDebit = data.amountToDebit;
+  //   newPackage.createdBy = createdBy;
+  //   newPackage.discount = data.discount;
+  //   newPackage.frequency = data.frequency;
+  //   newPackage.corporateSubscriber = corporateSubscriber;
+  //   newPackage.paymentMode = data.paymentMode;
+
+  //   if (data.paymentMode === PAYMENTMODE.Cash) {
+  //     newPackage.momoNetwork = MOMONETWORK.None;
+  //     newPackage.momoNumber = '';
+  //     newPackage.CAGDStaffID = '';
+  //     newPackage.chequeNumber = '';
+  //     newPackage.accountNumber = '';
+  //     newPackage.bank = null;
+  //   } else if (data.paymentMode === PAYMENTMODE.CAGD) {
+  //     newPackage.momoNetwork = MOMONETWORK.None;
+  //     newPackage.momoNumber = '';
+  //     newPackage.CAGDStaffID = data.CAGDStaffID;
+  //     newPackage.chequeNumber = '';
+  //     newPackage.accountNumber = '';
+  //     newPackage.bank = null;
+  //   } else if (data.paymentMode === PAYMENTMODE.Cheque) {
+  //     newPackage.momoNetwork = MOMONETWORK.None;
+  //     newPackage.momoNumber = '';
+  //     newPackage.CAGDStaffID = '';
+  //     newPackage.chequeNumber = data.chequeNumber;
+  //     newPackage.accountNumber = '';
+  //     if (newPackage.bank && data.bank) {
+  //       newPackage.bank.id = +data.bank;
+  //     } else if (!newPackage.bank && data.bank) {
+  //       const bank = new Bank();
+  //       bank.id = +data.bank;
+  //       newPackage.bank = bank;
+  //     }
+  //   } else if (data.paymentMode === PAYMENTMODE.MOMO) {
+  //     newPackage.momoNetwork = data.momoNetwork;
+  //     newPackage.momoNumber = data.momoNumber;
+  //     newPackage.CAGDStaffID = '';
+  //     newPackage.chequeNumber = '';
+  //     newPackage.accountNumber = '';
+  //     newPackage.bank = null;
+  //   } else if (data.paymentMode === PAYMENTMODE.StandingOrder) {
+  //     newPackage.momoNetwork = MOMONETWORK.None;
+  //     newPackage.momoNumber = '';
+  //     newPackage.CAGDStaffID = '';
+  //     newPackage.chequeNumber = '';
+  //     newPackage.accountNumber = data.accountNumber;
+  //     if (newPackage.bank && data.bank) {
+  //       newPackage.bank.id = +data.bank;
+  //     } else if (!newPackage.bank && data.bank) {
+  //       const bank = new Bank();
+  //       bank.id = +data.bank;
+  //       newPackage.bank = bank;
+  //     }
+  //   }
+
+  //   try {
+  //     await this.corporatePackageRepository.save(newPackage);
+
+  //     const payment = new CorporateSubscriberPayment();
+  //     payment.confirmed = data.paymentMode === PAYMENTMODE.MOMO ? true : false;
+  //     payment.confirmedBy =
+  //       data.paymentMode === PAYMENTMODE.MOMO ? data.momoNetwork : '';
+  //     payment.createdBy === createdBy;
+  //     payment.paymentStatus = PAYMENTMODE.MOMO
+  //       ? PAYMENTSTATUS.Paid
+  //       : PAYMENTSTATUS.Unpaid;
+
+  //     payment.createdBy = createdBy;
+
+  //     payment.corporatePackage = newPackage;
+
+  //     await this.corporateSubscriberPaymentRepository.save(payment);
+
+  //     return {
+  //       message: 'Corporate Package has been successfully created.',
+  //       status: HttpStatus.CREATED,
+  //       success: true,
+  //     };
+  //   } catch (error) {
+  //     if (
+  //       error instanceof QueryFailedError &&
+  //       error.message.includes('duplicate key')
+  //     ) {
+  //       throw new ConflictException(
+  //         'Subscriber with this name already exists.',
+  //       );
+  //     } else {
+  //       throw error;
+  //     }
+  //   }
+  // }
+
   async createPackage(data: CreateCorporatePackageDto, createdBy: string) {
     const corporateSubscriber = await this.findOneById(data.corporateId);
+    const newPackage = this.createCorporatePackage(
+      data,
+      createdBy,
+      corporateSubscriber,
+    );
+    const corporatePayment = await this.createCorporatePayment(
+      data,
+      newPackage,
+      createdBy,
+    );
 
+    if (data.paymentMode !== PAYMENTMODE.MOMO) {
+      await this.makePayment(
+        data,
+        corporateSubscriber,
+        newPackage,
+        corporatePayment,
+      );
+    }
+
+    return {
+      message: 'Corporate Package has been successfully created.',
+      status: HttpStatus.CREATED,
+      success: true,
+    };
+  }
+
+  private createCorporatePackage(
+    data: CreateCorporatePackageDto,
+    createdBy: string,
+    corporateSubscriber: CorporateSubscriber,
+  ): CorporatePackage {
     const newPackage = new CorporatePackage();
+    const reference = `CNS-${Date.now().toString(36)}-${uuidv4()}`;
+
     newPackage.amountToDebit = data.amountToDebit;
     newPackage.createdBy = createdBy;
     newPackage.discount = data.discount;
     newPackage.frequency = data.frequency;
-    newPackage.corporateSubscriber = corporateSubscriber;
     newPackage.paymentMode = data.paymentMode;
+    newPackage.corporateSubscriber = corporateSubscriber;
+    newPackage.paymentReferenceCode = reference;
 
-    if (data.paymentMode === PAYMENTMODE.Cash) {
-      newPackage.momoNetwork = MOMONETWORK.None;
-      newPackage.momoNumber = '';
-      newPackage.CAGDStaffID = '';
-      newPackage.chequeNumber = '';
-      newPackage.accountNumber = '';
-      newPackage.bank = null;
-    } else if (data.paymentMode === PAYMENTMODE.CAGD) {
-      newPackage.momoNetwork = MOMONETWORK.None;
-      newPackage.momoNumber = '';
-      newPackage.CAGDStaffID = data.CAGDStaffID;
-      newPackage.chequeNumber = '';
-      newPackage.accountNumber = '';
-      newPackage.bank = null;
-    } else if (data.paymentMode === PAYMENTMODE.Cheque) {
-      newPackage.momoNetwork = MOMONETWORK.None;
-      newPackage.momoNumber = '';
-      newPackage.CAGDStaffID = '';
-      newPackage.chequeNumber = data.chequeNumber;
-      newPackage.accountNumber = '';
-      if (newPackage.bank && data.bank) {
-        newPackage.bank.id = +data.bank;
-      } else if (!newPackage.bank && data.bank) {
-        const bank = new Bank();
-        bank.id = +data.bank;
-        newPackage.bank = bank;
-      }
-    } else if (data.paymentMode === PAYMENTMODE.MOMO) {
-      newPackage.momoNetwork = data.momoNetwork;
-      newPackage.momoNumber = data.momoNumber;
-      newPackage.CAGDStaffID = '';
-      newPackage.chequeNumber = '';
-      newPackage.accountNumber = '';
-      newPackage.bank = null;
-    } else if (data.paymentMode === PAYMENTMODE.StandingOrder) {
-      newPackage.momoNetwork = MOMONETWORK.None;
-      newPackage.momoNumber = '';
-      newPackage.CAGDStaffID = '';
-      newPackage.chequeNumber = '';
-      newPackage.accountNumber = data.accountNumber;
-      if (newPackage.bank && data.bank) {
-        newPackage.bank.id = +data.bank;
-      } else if (!newPackage.bank && data.bank) {
-        const bank = new Bank();
-        bank.id = +data.bank;
-        newPackage.bank = bank;
-      }
+    switch (data.paymentMode) {
+      case PAYMENTMODE.Cash:
+        break;
+      case PAYMENTMODE.CAGD:
+        newPackage.CAGDStaffID = data.CAGDStaffID;
+        break;
+      case PAYMENTMODE.Cheque:
+        newPackage.chequeNumber = data.chequeNumber;
+        if (data.bank) {
+          this.setBank(newPackage, data.bank);
+        }
+        break;
+      case PAYMENTMODE.MOMO:
+        newPackage.momoNetwork = data.momoNetwork;
+        newPackage.momoNumber = data.momoNumber;
+        break;
+      case PAYMENTMODE.StandingOrder:
+        newPackage.accountNumber = data.accountNumber;
+        if (data.bank) {
+          this.setBank(newPackage, data.bank);
+        }
+        break;
     }
 
-    try {
-      await this.corporatePackageRepository.save(newPackage);
+    return newPackage;
+  }
 
-      const payment = new CorporateSubscriberPayment();
-      payment.confirmed = data.paymentMode === PAYMENTMODE.MOMO ? true : false;
-      payment.confirmedBy =
-        data.paymentMode === PAYMENTMODE.MOMO ? data.momoNetwork : '';
-      payment.createdBy === createdBy;
-      payment.paymentStatus = PAYMENTMODE.MOMO
-        ? PAYMENTSTATUS.Paid
-        : PAYMENTSTATUS.Unpaid;
-
-      payment.createdBy = createdBy;
-
-      payment.corporatePackage = newPackage;
-
-      await this.corporateSubscriberPaymentRepository.save(payment);
-
-      return {
-        message: 'Corporate Package has been successfully created.',
-        status: HttpStatus.CREATED,
-        success: true,
-      };
-    } catch (error) {
-      if (
-        error instanceof QueryFailedError &&
-        error.message.includes('duplicate key')
-      ) {
-        throw new ConflictException(
-          'Subscriber with this name already exists.',
-        );
-      } else {
-        throw error;
-      }
+  private setBank(newPackage: CorporatePackage, bankId: number): void {
+    if (newPackage.bank) {
+      newPackage.bank.id = +bankId;
+    } else {
+      const bank = new Bank();
+      bank.id = +bankId;
+      newPackage.bank = bank;
     }
+  }
+
+  private async createCorporatePayment(
+    data: CreateCorporatePackageDto,
+    newPackage: CorporatePackage,
+    createdBy: string,
+  ): Promise<CorporateSubscriberPayment> {
+    const payment = new CorporateSubscriberPayment();
+    payment.createdBy = createdBy;
+    payment.paymentStatus = PAYMENTSTATUS.Unpaid;
+    payment.confirmed = data.paymentMode === PAYMENTMODE.MOMO;
+    payment.referenceCode = newPackage.paymentReferenceCode;
+    payment.amountToDebit = calculateDiscount(
+      data.amountToDebit,
+      +data.discount,
+    );
+    payment.originalAmount = data.amountToDebit;
+    payment.corporatePackage = newPackage;
+    payment.mandateStatus =
+      data.paymentMode === PAYMENTMODE.MOMO
+        ? MANDATESTATUS.Pending
+        : MANDATESTATUS.None;
+
+    return this.corporateSubscriberPaymentRepository.save(payment);
+  }
+
+  private async makePayment(
+    data: CreateCorporatePackageDto,
+    familySubscriber: CorporateSubscriber,
+    newPackage: CorporatePackage,
+    familyPayment: CorporateSubscriberPayment,
+  ): Promise<void> {
+    const paymentData: IPayment = {
+      dateOfPayment: new Date(),
+      confirmed: false,
+      confirmedBy: '',
+      confirmedDate: null,
+      paymentStatus: PAYMENTSTATUS.Unpaid,
+      paymentMode: newPackage.paymentMode,
+      amountWithOutDiscount: familyPayment.originalAmount,
+      amount: familyPayment.amountToDebit,
+      subscriberType: SUBSCRIBERTYPE.Corporate,
+      subscriberDbId: familySubscriber.id,
+      subscriberPaymentDbId: familyPayment.id,
+      paymentReferenceCode: newPackage.paymentReferenceCode,
+      subscriberName: `${familySubscriber.name}`,
+      momTransactionId: null,
+      debitOrderTransactionId: null,
+      mandateId: null,
+      phoneNumber: newPackage.momoNumber ?? null,
+    };
+    await this.paymentService.makePayment(paymentData);
   }
 
   async findPackageById(id: number) {

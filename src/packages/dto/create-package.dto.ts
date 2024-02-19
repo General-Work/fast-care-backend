@@ -30,7 +30,7 @@ export class CreatePackageDto {
 
   @IsNotEmpty({ message: 'Amount can not be null' })
   @IsNumber()
-  @Min(1, { message: 'Amount should be greater than 0' })
+  // @Min(1, { message: 'Amount should be greater than 0' })
   @ApiProperty({
     description: 'Amount of the package',
     example: 100, // Use an example value

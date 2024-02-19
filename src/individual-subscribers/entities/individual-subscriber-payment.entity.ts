@@ -8,7 +8,7 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { IndividualSubscriber } from './individual-subscriber.entity';
-import { PAYMENTSTATUS } from 'src/lib';
+import { MANDATESTATUS, PAYMENTSTATUS } from 'src/lib';
 
 @Entity('individual_subscriber_payments')
 export class IndividualSubscriberPayment {
@@ -24,16 +24,33 @@ export class IndividualSubscriberPayment {
   @Column({ default: false })
   confirmed: boolean;
 
-  @Column()
+  @Column({ default: '' })
   confirmedBy: string;
 
   @CreateDateColumn()
   confirmedDate: Date;
 
+  @Column({ default: '' })
+  referenceCode: string;
+
   @Column()
   paymentStatus: PAYMENTSTATUS;
 
-  @ManyToOne(() => IndividualSubscriber, { eager: true, onDelete: 'CASCADE' })
+  @Column({ nullable: true })
+  originalAmount: number;
+
+  @Column({ nullable: true })
+  amountToDebit: number;
+
+  @Column({ nullable: true })
+  mandateStatus: MANDATESTATUS;
+
+  @Column({ default: '' })
+  mandateID: string;
+
+  @ManyToOne(() => IndividualSubscriber, (x) => x.payments, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'subscriberId' })
   subscriber: IndividualSubscriber;
 

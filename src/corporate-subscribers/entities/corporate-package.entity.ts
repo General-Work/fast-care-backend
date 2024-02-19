@@ -35,7 +35,6 @@ export class CorporatePackage {
   CAGDStaffID: string;
 
   @ManyToOne(() => Bank, (bank) => bank.corporateSubscribers, {
-    eager: true,
     nullable: true,
   })
   bank: Bank;
@@ -67,6 +66,9 @@ export class CorporatePackage {
 
   @Column({ nullable: true })
   updateBy: string;
+
+  @Column({ nullable: true })
+  paymentReferenceCode: string;
 
   @CreateDateColumn()
   createdAt: Date;

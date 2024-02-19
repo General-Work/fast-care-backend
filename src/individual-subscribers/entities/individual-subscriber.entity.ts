@@ -79,6 +79,9 @@ export class IndividualSubscriber {
   @Column()
   emergencyPersonPhone: string;
 
+  @Column({ nullable: true })
+  paymentReferenceCode: string;
+
   @Column({ default: '' })
   accountNumber: string;
 
@@ -127,18 +130,22 @@ export class IndividualSubscriber {
   })
   agent: Staff;
 
-  @ManyToOne(() => Facility, { eager: true, nullable: false })
+  @ManyToOne(() => Facility, { nullable: false })
   facility: Facility;
 
-  @ManyToOne(() => Package, { eager: true, nullable: false })
+  @ManyToOne(() => Package, { nullable: false })
   package: Package;
 
-  @ManyToOne(() => Group, { eager: true, nullable: true })
+  @ManyToOne(() => Group, { nullable: true })
   group: Group;
 
-  @ManyToOne(() => Bank, { eager: true, nullable: true })
-  bank: Bank ;
+  @ManyToOne(() => Bank, { nullable: true })
+  bank: Bank;
 
-  @OneToMany(() => IndividualSubscriberPayment, (payment) => payment.subscriber)
+  @OneToMany(
+    () => IndividualSubscriberPayment,
+    (payment) => payment.subscriber,
+    { nullable: true },
+  )
   payments: IndividualSubscriberPayment[];
 }

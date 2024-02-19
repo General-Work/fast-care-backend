@@ -6,6 +6,7 @@ import { IndividualSubscriber } from './entities/individual-subscriber.entity';
 import { IndividualSubscriberPayment } from './entities/individual-subscriber-payment.entity';
 import { PaginationModule } from 'src/pagination/pagination.module';
 import { PackagesModule } from 'src/packages/packages.module';
+import { PaymentsModule } from 'src/payments/payments.module';
 
 @Module({
   imports: [
@@ -15,8 +16,10 @@ import { PackagesModule } from 'src/packages/packages.module';
     ]),
     PaginationModule,
     PackagesModule,
+    PaymentsModule
   ],
   controllers: [IndividualSubscribersController],
   providers: [IndividualSubscribersService],
+  exports: [IndividualSubscribersService],
 })
 export class IndividualSubscribersModule {}

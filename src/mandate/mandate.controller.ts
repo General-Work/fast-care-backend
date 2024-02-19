@@ -9,40 +9,37 @@ import {
 } from '@nestjs/common';
 import { MandateService } from './mandate.service';
 import { CreateMandateDto } from './dto/create-mandate.dto';
-import { UpdateMandateDto } from './dto/update-mandate.dto';
+import { TransactionDto } from './dto/create-debit.dto';
+import { CancelMandateDtoDto } from './dto/cancel-mandate.dto';
+import { CancelApprovalDto } from './dto/cancel-approval.dto';
+import { ApiTags } from '@nestjs/swagger';
 
+@ApiTags('Mandate')
 @Controller('mandate')
 export class MandateController {
   constructor(private readonly mandateService: MandateService) {}
 
   @Post('callback')
   postCallback(@Body() data: CreateMandateDto) {
-    console.log('mandate',data);
-    return true;
+    console.log('mandate', data);
+    return this.mandateService.createMandate(data);
   }
 
-  @Post()
-  create(@Body() createMandateDto: CreateMandateDto) {
-    return this.mandateService.create(createMandateDto);
+  @Post('debit')
+  postDebit(@Body() data: TransactionDto) {
+    console.log('transaction', data);
+    return this.mandateService.postDebit(data)
   }
 
-  @Get()
-  findAll() {
-    return this.mandateService.findAll();
+  @Post('cancel/mandate')
+  cancelMandate(@Body() data: CancelMandateDtoDto) {
+    // console.log(data);
+    return this.mandateService.cancelMandate(data);
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.mandateService.findOne(+id);
-  }
-
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateMandateDto: UpdateMandateDto) {
-    return this.mandateService.update(+id, updateMandateDto);
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.mandateService.remove(+id);
+  @Post('cancel/preapproval')
+  preapprovalMandate(@Body() data: CancelApprovalDto) {
+    // console.log(data);
+    return this.mandateService.cancelPreapproval(data);
   }
 }

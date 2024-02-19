@@ -71,6 +71,13 @@ export enum PAYMENTSTATUS {
   Unpaid = 'Unpaid',
 }
 
+export enum MANDATESTATUS {
+  Pending = 'Pending',
+  Success = 'Success',
+  Failed = 'Failed',
+  None = '',
+}
+
 export enum DISCOUNT {
   '0%' = 0,
   '5%' = 5,
@@ -78,4 +85,30 @@ export enum DISCOUNT {
   '15%' = 15,
   '20%' = 20,
   '25%' = 25,
+}
+
+export enum SUBSCRIBERTYPE {
+  Individual = 'Individual',
+  Family = 'Family',
+  Corporate = 'Corporate',
+}
+
+export interface IPayment {
+  dateOfPayment: Date;
+  confirmed: boolean;
+  confirmedBy: string;
+  confirmedDate: Date | null;
+  paymentStatus: PAYMENTSTATUS;
+  paymentMode: PAYMENTMODE;
+  amountWithOutDiscount: number;
+  amount: number;
+  subscriberType: SUBSCRIBERTYPE;
+  subscriberDbId: number;
+  subscriberPaymentDbId: number;
+  paymentReferenceCode: string;
+  subscriberName: string;
+  momTransactionId: string | null;
+  debitOrderTransactionId: string | null;
+  mandateId: string | null;
+  phoneNumber: string | null;
 }

@@ -5,6 +5,8 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { CreateIndividualSubscriberDto } from './dto/create-individual-subscriber.dto';
+import { UpdateIndividualSubscriberDto } from './dto/update-individual-subscriber.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { QueryFailedError, Repository } from 'typeorm';
 import {
@@ -12,8 +14,6 @@ import {
   PaginationOptions,
   PaginationService,
 } from 'src/pagination/pagination.service';
-import { CreateIndividualSubscriberDto } from './dto/create-individual-subscriber.dto';
-import { UpdateIndividualSubscriberDto } from './dto/update-individual-subscriber.dto';
 import { IndividualSubscriber } from './entities/individual-subscriber.entity';
 import { IndividualSubscriberPayment } from './entities/individual-subscriber-payment.entity';
 import { Staff } from 'src/staff/entities/staff.entity';
@@ -21,20 +21,15 @@ import { Facility } from 'src/facilities/entities/facility.entity';
 import { Group } from 'src/groups/entities/group.entity';
 import { Package } from 'src/packages/entities/package.entity';
 import {
-  IPayment,
   MANDATESTATUS,
   MOMONETWORK,
   PAYMENTMODE,
   PAYMENTSTATUS,
-  SUBSCRIBERTYPE,
   calculateDiscount,
   createMandate,
-  delay,
 } from 'src/lib';
 import { Bank } from 'src/bank/entities/bank.entity';
 import { PackagesService } from 'src/packages/packages.service';
-import { PaymentsService } from 'src/payments/payments.service';
-import { v4 as uuidv4 } from 'uuid';
 
 export enum IndividualSort {
   id_asc = 'id_asc',
@@ -54,9 +49,8 @@ export enum IndividualSort {
   createdAt_asc = 'createdAt_asc',
   createdAt_desc = 'createdAt_desc',
 }
-
 @Injectable()
-export class IndividualSubscribersService {
+export class IndividualSubscribersServicesa {
   constructor(
     @InjectRepository(IndividualSubscriber)
     private readonly subscriberRepository: Repository<IndividualSubscriber>,
@@ -64,7 +58,6 @@ export class IndividualSubscribersService {
     private readonly subscriberPaymentRepository: Repository<IndividualSubscriberPayment>,
     private readonly paginationService: PaginationService,
     private readonly packageService: PackagesService,
-    private readonly paymentService: PaymentsService,
   ) {}
 
   async create(
@@ -73,44 +66,66 @@ export class IndividualSubscribersService {
     createdBy: string,
     agent: number,
   ) {
+    const staff = await this.findOrCreateStaff(agent);
+    const facility = await this.findOrCreateFacility(+data.facility);
+    const group = await this.findOrCreateGroup(+data.group);
+    const newPackage = await this.findOrCreatePackage(+data.package);
+
+    const membershipID = await this.generateStaffCode();
+
+    const packageAmount = (await this.packageService.findOne(+data.package))
+      .amount;
+    const amount = calculateDiscount(packageAmount, +data.discount);
+
+    const subscriber = this.createSubscriberInstance(
+      data,
+      staff,
+      createdBy,
+      facility,
+      group,
+      newPackage,
+      passportPicture,
+      membershipID,
+    );
+
+    const payment = await this.createSubscriberPayment(
+      data,
+      subscriber,
+      amount,
+      packageAmount,
+      createdBy,
+    );
+
     try {
-      const staffPromise = this.findOrCreateStaff(agent);
-      const facilityPromise = this.findOrCreateFacility(+data.facility);
-      const groupPromise = this.findOrCreateGroup(+data.group);
-      const packagePromise = this.findOrCreatePackage(+data.package);
-      const membershipIDPromise = this.generateStaffCode();
-
-      const [staff, facility, group, newPackage, membershipID] =
-        await Promise.all([
-          staffPromise,
-          facilityPromise,
-          groupPromise,
-          packagePromise,
-          membershipIDPromise,
-        ]);
-
-      const { subscriber, payment } = await this.createSubscriberAndPayment(
-        data,
-        staff,
-        createdBy,
-        facility,
-        group,
-        newPackage,
-        passportPicture,
-        membershipID,
-      );
-
       if (data.paymentMode === PAYMENTMODE.MOMO) {
-        await this.createMandateIfNeeded(data, subscriber.paymentReferenceCode);
+        const x = {
+          amountToDebit: `${amount}`,
+          momoNumber: data.momoNumber,
+          momoNetWork: data.momoNetwork,
+          membershipId: membershipID,
+          frequency: data.frequency,
+        };
+
+        const res = await createMandate(x);
+
+        if (res.responseCode === '03') {
+          await this.saveSubscriberAndPayment(subscriber, payment);
+          return {
+            message: 'Subscriber has been successfully created.',
+            status: HttpStatus.CREATED,
+            success: true,
+          };
+        } else {
+          throw new BadRequestException(res.responseMessage);
+        }
+      } else {
+        await this.saveSubscriberAndPayment(subscriber, payment);
+        return {
+          message: 'Subscriber has been successfully created.',
+          status: HttpStatus.CREATED,
+          success: true,
+        };
       }
-
-      await this.saveSubscriberAndPayment(subscriber, payment);
-
-      return {
-        message: 'Subscriber has been successfully created.',
-        status: HttpStatus.CREATED,
-        success: true,
-      };
     } catch (error) {
       if (
         error instanceof QueryFailedError &&
@@ -145,8 +160,7 @@ export class IndividualSubscribersService {
         .leftJoinAndSelect(`${alias}.facility`, 'facility')
         .leftJoinAndSelect(`${alias}.package`, 'package')
         .leftJoinAndSelect(`${alias}.group`, 'group')
-        .leftJoinAndSelect(`${alias}.bank`, 'bank')
-        .leftJoinAndSelect(`${alias}.payments`, 'payments'),
+        .leftJoinAndSelect(`${alias}.bank`, 'bank'),
     });
 
     return x;
@@ -160,10 +174,6 @@ export class IndividualSubscribersService {
     return subscriber;
   }
 
-  // async findSubscriberWithReferenceCode(code: string) {
-  //   return this.subscriberRepository.findOneBy({ paymentReferenceCode: code });
-  // }
-
   async update(
     id: number,
     data: UpdateIndividualSubscriberDto,
@@ -174,20 +184,26 @@ export class IndividualSubscribersService {
       const subscriber = await this.findOneById(id);
       this.updateSubscriberFields(subscriber, data, passportPicture, updatedBy);
       await this.saveSubscriber(subscriber);
-      await this.updateSubscriberPayment(subscriber, data, updatedBy);
+      await this.updateSubscriberPayment(
+        subscriber,
+        data,
+        updatedBy,
+      );
       return {
         message: 'Subscriber has been successfully updated.',
         status: HttpStatus.OK,
         success: true,
       };
     } catch (error) {
-      throw error;
+      throw error; // Handle the error appropriately, e.g., log it or rethrow it
     }
   }
 
   async remove(id: number) {
     const subscriber = await this.findOneById(id);
+
     await this.subscriberRepository.remove(subscriber);
+
     return {
       message: 'Subscriber has been successfully removed.',
       status: HttpStatus.OK,
@@ -219,7 +235,6 @@ export class IndividualSubscribersService {
     const day = ('0' + date.getDate()).slice(-2);
 
     const uniqueNumber = Number(latestUniqueNumber.toString().slice(6)) + 1;
-
     return `INS${year}${month}${day}${uniqueNumber
       .toString()
       .padStart(4, '0')}`;
@@ -249,28 +264,7 @@ export class IndividualSubscribersService {
     return newPackage;
   }
 
-  private async createMandateIfNeeded(
-    data: CreateIndividualSubscriberDto,
-    membershipID: string,
-  ): Promise<void> {
-    const x = {
-      amountToDebit: `${calculateDiscount(
-        (await this.packageService.findOne(+data.package)).amount,
-        +data.discount,
-      )}`,
-      momoNumber: data.momoNumber,
-      momoNetWork: data.momoNetwork,
-      membershipId: membershipID,
-      frequency: data.frequency,
-    };
-    const res = await createMandate(x);
-    if (res.responseCode !== '03') {
-      throw new BadRequestException(res.responseMessage);
-      // return true
-    }
-  }
-
-  private async createSubscriberAndPayment(
+  private createSubscriberInstance(
     data: CreateIndividualSubscriberDto,
     staff: Staff,
     createdBy: string,
@@ -279,12 +273,8 @@ export class IndividualSubscribersService {
     newPackage: Package,
     passportPicture: string | undefined,
     membershipID: string,
-  ) {
+  ): IndividualSubscriber {
     const subscriber = new IndividualSubscriber();
-    const payment = new IndividualSubscriberPayment();
-    const reference = `INS-${Date.now().toString(36)}-${uuidv4()}`;
-
-    // Populate subscriber fields
     subscriber.NHISNumber = data.NHISNumber;
     subscriber.address = data.address;
     subscriber.agent = staff;
@@ -312,62 +302,95 @@ export class IndividualSubscribersService {
     subscriber.phoneOne = data.phoneOne;
     subscriber.phoneTwo = data.phoneTwo ?? '';
     subscriber.paymentMode = data.paymentMode;
-    subscriber.paymentReferenceCode = reference;
 
-    // Populate payment fields
-    // payment.confirmed = data.paymentMode === PAYMENTMODE.MOMO;
-    // payment.confirmedBy =
-    //   data.paymentMode === PAYMENTMODE.MOMO ? data.momoNetwork : '';
-    const packageData = await this.packageService.findOne(newPackage.id);
+    if (data.paymentMode === PAYMENTMODE.Cash) {
+      subscriber.momoNetwork = MOMONETWORK.None;
+      subscriber.momoNumber = '';
+      subscriber.CAGDStaffID = '';
+      subscriber.chequeNumber = '';
+      subscriber.accountNumber = '';
+      subscriber.bank = null;
+    } else if (
+      data.paymentMode === PAYMENTMODE.CAGD ||
+      data.paymentMode === PAYMENTMODE.Cheque
+    ) {
+      subscriber.momoNetwork = MOMONETWORK.None;
+      subscriber.momoNumber = '';
+      subscriber.CAGDStaffID =
+        data.paymentMode === PAYMENTMODE.CAGD ? data.CAGDStaffID : '';
+      subscriber.chequeNumber =
+        data.paymentMode === PAYMENTMODE.Cheque ? data.chequeNumber : '';
+      subscriber.accountNumber = '';
+      subscriber.bank = null;
+      if (
+        data.paymentMode === PAYMENTMODE.Cheque &&
+        subscriber.bank &&
+        data.bank
+      ) {
+        subscriber.bank.id = +data.bank;
+      } else if (
+        data.paymentMode === PAYMENTMODE.Cheque &&
+        !subscriber.bank &&
+        data.bank
+      ) {
+        const bank = new Bank();
+        bank.id = +data.bank;
+        subscriber.bank = bank;
+      }
+    } else if (data.paymentMode === PAYMENTMODE.MOMO) {
+      subscriber.momoNetwork = data.momoNetwork;
+      subscriber.momoNumber = data.momoNumber;
+      subscriber.CAGDStaffID = '';
+      subscriber.chequeNumber = '';
+      subscriber.accountNumber = '';
+      subscriber.bank = null;
+    } else if (data.paymentMode === PAYMENTMODE.StandingOrder) {
+      subscriber.momoNetwork = MOMONETWORK.None;
+      subscriber.momoNumber = '';
+      subscriber.CAGDStaffID = '';
+      subscriber.chequeNumber = '';
+      subscriber.accountNumber = data.accountNumber;
+      if (subscriber.bank && data.bank) {
+        subscriber.bank.id = +data.bank;
+      } else if (!subscriber.bank && data.bank) {
+        const bank = new Bank();
+        bank.id = +data.bank;
+        subscriber.bank = bank;
+      }
+    }
+
+    return subscriber;
+  }
+
+  private async createSubscriberPayment(
+    data: CreateIndividualSubscriberDto,
+    subscriber: IndividualSubscriber,
+    amount: number,
+    packageAmount: number,
+    createdBy: string,
+  ): Promise<IndividualSubscriberPayment> {
+    const payment = new IndividualSubscriberPayment();
+    payment.confirmed = data.paymentMode === PAYMENTMODE.MOMO;
+    payment.confirmedBy =
+      data.paymentMode === PAYMENTMODE.MOMO ? data.momoNetwork : '';
     payment.createdBy = createdBy;
-    payment.paymentStatus = PAYMENTSTATUS.Unpaid;
-    payment.referenceCode = subscriber.paymentReferenceCode;
-    payment.amountToDebit = calculateDiscount(
-      packageData.amount,
-      +data.discount,
-    );
-    payment.originalAmount = packageData.amount;
-    payment.subscriber = subscriber;
-    payment.mandateStatus =
+    payment.paymentStatus =
       data.paymentMode === PAYMENTMODE.MOMO
-        ? MANDATESTATUS.Pending
-        : MANDATESTATUS.None;
+        ? PAYMENTSTATUS.Paid
+        : PAYMENTSTATUS.Unpaid;
+    payment.amountToDebit = amount;
+    payment.originalAmount = packageAmount;
+    payment.subscriber = subscriber;
 
-    return { subscriber, payment };
+    return payment;
   }
 
   private async saveSubscriberAndPayment(
     subscriber: IndividualSubscriber,
     payment: IndividualSubscriberPayment,
-    addPayment: boolean = true,
   ) {
-    const subscriberDb = await this.subscriberRepository.save(subscriber);
-    const paymentDb = await this.subscriberPaymentRepository.save(payment);
-
-    if (addPayment && subscriber.paymentMode !== PAYMENTMODE.MOMO) {
-      const x: IPayment = {
-        dateOfPayment: new Date(),
-        confirmed: false,
-        confirmedBy: '',
-        confirmedDate: null,
-        paymentStatus: PAYMENTSTATUS.Unpaid,
-        paymentMode: subscriber.paymentMode,
-        amountWithOutDiscount: paymentDb.originalAmount,
-        amount: paymentDb.amountToDebit,
-        subscriberType: SUBSCRIBERTYPE.Individual,
-        subscriberDbId: subscriberDb.id,
-        subscriberPaymentDbId: paymentDb.id,
-        paymentReferenceCode: subscriberDb.paymentReferenceCode,
-        subscriberName: `${subscriberDb.firstName} ${
-          subscriberDb.otherNames ?? ''
-        } ${subscriberDb.lastName}`,
-        momTransactionId: null,
-        debitOrderTransactionId: null,
-        mandateId: null,
-        phoneNumber: subscriberDb.momoNumber ?? null,
-      };
-      await this.paymentService.makePayment(x);
-    }
+    await this.subscriberRepository.save(subscriber);
+    await this.subscriberPaymentRepository.save(payment);
   }
 
   private updateSubscriberFields(
@@ -518,175 +541,5 @@ export class IndividualSubscribersService {
 
     await this.subscriberPaymentRepository.save(payment);
     return payment;
-  }
-
-  // async updateMandateStatus(data: {
-  //   momoNumber: string;
-  //   referenceCode: string;
-  //   mandateID: string;
-  //   mandateStatus: MANDATESTATUS;
-  //   success: boolean;
-  // }) {
-  //   try {
-  //     const subscriber = await this.subscriberRepository.findOneBy({
-  //       paymentReferenceCode: data.referenceCode,
-  //     });
-  //     console.log(subscriber);
-
-  //     if (!subscriber) {
-  //       return null;
-  //     }
-  //     const payments = subscriber.payments.filter(
-  //       (payment) => payment.subscriber.momoNumber === data.momoNumber,
-  //     );
-  //     console.log(payments);
-
-  //     if (payments.length === 0) {
-  //       await delay(120000); // 120000 milliseconds = 2 minutes
-  //       return this.updateMandateStatus(data);
-
-  //       // return null;
-  //     }
-  //     const paymentToUpdate = payments[0];
-  //     paymentToUpdate.confirmed = data.success ? true : false;
-  //     paymentToUpdate.confirmedBy = data.success ? 'Payment gateway' : '';
-  //     paymentToUpdate.confirmedDate = data.success && new Date();
-  //     paymentToUpdate.mandateID = data.mandateID;
-  //     paymentToUpdate.mandateStatus = data.mandateStatus;
-
-  //     console.log(paymentToUpdate);
-
-  //     await this.subscriberPaymentRepository.save(paymentToUpdate);
-
-  //     return HttpStatus.OK;
-  //   } catch (e) {
-  //     return e;
-  //   }
-  // }
-
-  async updateMandateStatus(data: {
-    momoNumber: string;
-    referenceCode: string;
-    mandateID: string;
-    mandateStatus: MANDATESTATUS;
-    success: boolean;
-  }) {
-    try {
-      return await this.updateMandateStatusWithRetry(data);
-    } catch (e) {
-      return e; // Handling the error outside
-    }
-  }
-
-  private async findAndProcessSubscriberPayment(
-    data: {
-      momoNumber: string;
-      referenceCode: string;
-      mandateID: string;
-      mandateStatus: MANDATESTATUS;
-      success: boolean;
-    },
-    // subscriberRepository: SubscriberRepository,
-    // subscriberPaymentRepository: SubscriberPaymentRepository,
-  ): Promise<HttpStatus> {
-    try {
-      const subscriber =
-        await this.findIndividualWithoutPassportByReferenceCode(
-          data.referenceCode,
-        );
-
-      console.log(subscriber);
-      if (!subscriber) {
-        return null;
-      }
-      const payment = await this.subscriberPaymentRepository
-        .createQueryBuilder('payment')
-        .leftJoinAndSelect('payment.subscriber', 'subscriber')
-        // .select(['id', 'payments'])
-        .where('subscriber.id = :subscriberId', {
-          subscriberId: subscriber.id,
-        })
-        .orderBy('payment.id', 'DESC')
-        .select(['payment', 'subscriber.id'])
-        .getOne();
-
-      console.log(payment);
-
-      if (!payment) {
-        return null;
-      }
-
-      const paymentToUpdate = payment;
-      paymentToUpdate.confirmed = data.success ? true : false;
-      paymentToUpdate.confirmedBy = data.success ? 'Payment gateway' : '';
-      paymentToUpdate.confirmedDate = data.success
-        ? new Date()
-        : payment.confirmedDate;
-      paymentToUpdate.mandateID = data.mandateID;
-      paymentToUpdate.mandateStatus = data.mandateStatus;
-
-      // console.log(paymentToUpdate);
-
-      await this.subscriberPaymentRepository.save(paymentToUpdate);
-
-      // console.log('res', res);
-    } catch (e) {
-      console.log(e); // Re-throwing the error to handle it outside
-      return null;
-    }
-  }
-
-  private async updateMandateStatusWithRetry(
-    data: {
-      momoNumber: string;
-      referenceCode: string;
-      mandateID: string;
-      mandateStatus: MANDATESTATUS;
-      success: boolean;
-    },
-    retryCount: number = 0,
-  ): Promise<HttpStatus> {
-    try {
-      const result = await this.findAndProcessSubscriberPayment(data);
-      if (result === null && retryCount < 3) {
-        // Retry after 2 minutes
-        await delay(1 * 60 * 1000);
-        return await this.updateMandateStatusWithRetry(
-          data,
-
-          retryCount + 1,
-        );
-      }
-      return result;
-    } catch (e) {
-      throw e; // Re-throwing the error to handle it outside
-    }
-  }
-
-  async findIndividualWithoutPassportByReferenceCode(referenceCode: string) {
-    const alias = 'item';
-    const properties = this.subscriberRepository.metadata.columns.map(
-      (column) => `${alias}.${column.propertyName}`,
-    );
-
-    const selectedProperties = properties.filter(
-      (property) => property !== `${alias}.passportPicture`,
-    );
-
-    return (
-      this.subscriberRepository
-        .createQueryBuilder(alias)
-        .select(selectedProperties)
-        .leftJoinAndSelect(`${alias}.agent`, 'agent')
-        .leftJoinAndSelect(`${alias}.facility`, 'facility')
-        .leftJoinAndSelect(`${alias}.package`, 'package')
-        .leftJoinAndSelect(`${alias}.group`, 'group')
-        .leftJoinAndSelect(`${alias}.bank`, 'bank')
-        // .leftJoinAndSelect(`${alias}.payments`, 'payments')
-        .where(`${alias}.paymentReferenceCode = :referenceCode`, {
-          referenceCode,
-        })
-        .getOne()
-    );
   }
 }

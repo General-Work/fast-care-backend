@@ -46,6 +46,9 @@ export class FamilyPackage {
   @Column({ default: '' })
   CAGDStaffID: string;
 
+  @Column({ nullable: true })
+  paymentReferenceCode: string;
+
   @OneToOne(() => FamilySubscriber, (family) => family.familyPackage)
   @JoinColumn({ name: 'familySubscriberId' })
   familySubscriber: FamilySubscriber;
@@ -54,7 +57,6 @@ export class FamilyPackage {
   payments: FamilySubscriberPayment[];
 
   @ManyToOne(() => Bank, (bank) => bank.familySubscribers, {
-    eager: true,
     nullable: true,
   })
   bank: Bank;

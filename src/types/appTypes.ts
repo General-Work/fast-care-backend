@@ -27,3 +27,4 @@ export type IPERMISSION =
   | 'Manage_Call_Center';
 
 export type PAYMENTSTATUS = 'Paid' | 'Unpaid';
+

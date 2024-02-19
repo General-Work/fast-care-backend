@@ -1,4 +1,4 @@
-import { PAYMENTSTATUS } from 'src/lib';
+import { MANDATESTATUS, PAYMENTSTATUS } from 'src/lib';
 import {
   Column,
   CreateDateColumn,
@@ -24,7 +24,7 @@ export class CorporateSubscriberPayment {
   @Column({ default: false })
   confirmed: boolean;
 
-  @Column()
+  @Column({ default: '' })
   confirmedBy: string;
 
   @CreateDateColumn()
@@ -33,7 +33,22 @@ export class CorporateSubscriberPayment {
   @Column()
   paymentStatus: PAYMENTSTATUS;
 
-  @ManyToOne(() => CorporatePackage, { eager: true, onDelete: 'CASCADE' })
+  @Column({ default: '' })
+  referenceCode: string;
+
+  @Column({ nullable: true })
+  originalAmount: number;
+
+  @Column({ nullable: true })
+  amountToDebit: number;
+
+  @Column({ nullable: true })
+  mandateStatus: MANDATESTATUS;
+
+  @Column({ default: '' })
+  mandateID: string;
+
+  @ManyToOne(() => CorporatePackage, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'corporatePackageId' })
   corporatePackage: CorporatePackage;
 

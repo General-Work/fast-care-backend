@@ -1,4 +1,4 @@
-import { PAYMENTSTATUS } from 'src/lib';
+import { MANDATESTATUS, PAYMENTSTATUS } from 'src/lib';
 import {
   Column,
   CreateDateColumn,
@@ -24,16 +24,31 @@ export class FamilySubscriberPayment {
   @Column({ default: false })
   confirmed: boolean;
 
-  @Column()
+  @Column({ default: '' })
   confirmedBy: string;
+
+  @Column({ default: '' })
+  referenceCode: string;
 
   @CreateDateColumn()
   confirmedDate: Date;
 
+  @Column({ nullable: true })
+  originalAmount: number;
+
+  @Column({ nullable: true })
+  amountToDebit: number;
+
+  @Column({ nullable: true })
+  mandateStatus: MANDATESTATUS;
+
+  @Column({ default: '' })
+  mandateID: string;
+
   @Column()
   paymentStatus: PAYMENTSTATUS;
 
-  @ManyToOne(() => FamilyPackage, { eager: true, onDelete: 'CASCADE' })
+  @ManyToOne(() => FamilyPackage, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'familyPackageId' })
   familyPackage: FamilyPackage;
 

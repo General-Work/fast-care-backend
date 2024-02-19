@@ -63,13 +63,13 @@ export class IndividualSubscribersController {
     @UploadedFile() passportPicture: Multer.File,
     @Req() req: Request,
   ) {
-    if (!passportPicture || !passportPicture.mimetype.startsWith('image/')) {
+    if (passportPicture && passportPicture.mimetype.startsWith('image/')) {
       throw new BadRequestException('Uploaded file should be an image.');
     }
 
-    const file = passportPicture
-      ? convertFileToBase64(passportPicture)
-      : undefined;
+    const file = passportPicture ? convertFileToBase64(passportPicture) : '';
+
+    console.log(file, createIndividualSubscriberDto,req);
 
     return this.individualSubscribersService.create(
       createIndividualSubscriberDto,
@@ -138,6 +138,7 @@ export class IndividualSubscribersController {
       return result;
     } catch (error) {
       // Handle errors or return appropriate HTTP responses
+      // console.log('here', error)
       return { error: error.message };
     }
   }

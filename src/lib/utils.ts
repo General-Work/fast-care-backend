@@ -95,3 +95,7 @@ export function getPaginationParams(req: Request) {
     query,
   };
 }
+
+export function delay(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}

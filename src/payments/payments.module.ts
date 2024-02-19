@@ -6,6 +6,7 @@ import { IndividualSubscriberPayment } from 'src/individual-subscribers/entities
 import { PaginationModule } from 'src/pagination/pagination.module';
 import { CorporateSubscriberPayment } from 'src/corporate-subscribers/entities/corporate-payment.entity';
 import { FamilySubscriberPayment } from 'src/family-subscribers/entities/family-subscriber-payment.entity';
+import { Payment } from './entities/payment.entity';
 
 @Module({
   imports: [
@@ -13,10 +14,12 @@ import { FamilySubscriberPayment } from 'src/family-subscribers/entities/family-
       IndividualSubscriberPayment,
       CorporateSubscriberPayment,
       FamilySubscriberPayment,
+      Payment
     ]),
     PaginationModule,
   ],
   controllers: [PaymentsController],
   providers: [PaymentsService],
+  exports: [PaymentsService]
 })
 export class PaymentsModule {}

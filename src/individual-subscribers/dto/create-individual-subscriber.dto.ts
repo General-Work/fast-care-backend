@@ -29,7 +29,12 @@ export class CreateIndividualSubscriberDto {
   idType: IDTYPES;
 
   @IsOptional()
-  @ApiProperty({ type: 'string', format: 'binary', nullable: true })
+  @ApiProperty({
+    type: 'string',
+    format: 'binary',
+    nullable: true,
+    required: false,
+  })
   passportPicture: string;
 
   @IsNotEmpty({ message: 'ID Number can not be null' })

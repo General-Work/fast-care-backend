@@ -23,10 +23,10 @@ export class CorporateBeneficiaries {
   @Column()
   contact: string;
 
-  @ManyToOne(() => Facility, { eager: true, nullable: false })
+  @ManyToOne(() => Facility, { nullable: false })
   facility: Facility;
 
-  @ManyToOne(() => Package, { eager: true, nullable: false })
+  @ManyToOne(() => Package, { nullable: false })
   package: Package;
 
   @ManyToOne(

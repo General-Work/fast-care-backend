@@ -7,6 +7,7 @@ import { CorporateBeneficiaries } from './entities/corporate-beneficiaries.entit
 import { CorporatePackage } from './entities/corporate-package.entity';
 import { CorporateSubscriber } from './entities/corporate-subscriber.entity';
 import { CorporateSubscriberPayment } from './entities/corporate-payment.entity';
+import { PaymentsModule } from 'src/payments/payments.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { CorporateSubscriberPayment } from './entities/corporate-payment.entity'
       CorporateSubscriberPayment,
     ]),
     PaginationModule,
+    PaymentsModule,
   ],
   controllers: [CorporateSubscribersController],
   providers: [CorporateSubscribersService],

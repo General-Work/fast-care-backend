@@ -71,6 +71,9 @@ dependencies:
   typeorm:
     specifier: ^0.3.19
     version: 0.3.19(mssql@10.0.1)(ts-node@10.9.2)
+  uuid:
+    specifier: ^9.0.1
+    version: 9.0.1
 
 devDependencies:
   '@nestjs/cli':

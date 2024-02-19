@@ -1,10 +1,10 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString } from 'class-validator';
+import { IsString, IsNumber, IsOptional } from 'class-validator';
 
-export class CreateMandateDto {
+export class TransactionDto {
   @IsString()
   @ApiProperty({
-    description: 'responseCode',
+    description: 'Respose code',
     example: 'string',
     required: true,
     type: String,
@@ -13,7 +13,7 @@ export class CreateMandateDto {
 
   @IsString()
   @ApiProperty({
-    description: 'responseMessage',
+    description: 'Respose message',
     example: 'string',
     required: true,
     type: String,
@@ -22,7 +22,25 @@ export class CreateMandateDto {
 
   @IsString()
   @ApiProperty({
-    description: 'merchantId',
+    description: 'Transaction ID',
+    example: 'string',
+    required: true,
+    type: String,
+  })
+  momTransactionId: string;
+
+  @IsString()
+  @ApiProperty({
+    description: 'Debit order transaction ID',
+    example: 'string',
+    required: true,
+    type: String,
+  })
+  debitOrderTransactionId: string;
+
+  @IsString()
+  @ApiProperty({
+    description: 'Merchant ID',
     example: 'string',
     required: true,
     type: String,
@@ -31,7 +49,7 @@ export class CreateMandateDto {
 
   @IsString()
   @ApiProperty({
-    description: 'productId',
+    description: 'Product ID',
     example: 'string',
     required: true,
     type: String,
@@ -40,7 +58,7 @@ export class CreateMandateDto {
 
   @IsString()
   @ApiProperty({
-    description: 'mandateId',
+    description: 'Mandate ID',
     example: 'string',
     required: true,
     type: String,
@@ -49,12 +67,21 @@ export class CreateMandateDto {
 
   @IsString()
   @ApiProperty({
-    description: 'clientPhone',
+    description: 'Client Phone',
     example: 'string',
     required: true,
     type: String,
   })
   clientPhone: string;
+
+  @IsString()
+  @ApiProperty({
+    description: 'Amount',
+    example: 'string',
+    required: true,
+    type: String,
+  })
+  amount: string;
 
   @IsString()
   @ApiProperty({

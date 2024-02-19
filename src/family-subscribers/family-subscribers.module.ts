@@ -7,6 +7,8 @@ import { FamilyPackage } from './entities/family-package.entity';
 import { FamilySubscriber } from './entities/family-subscriber.entity';
 import { FamilySubscriberPayment } from './entities/family-subscriber-payment.entity';
 import { PaginationModule } from 'src/pagination/pagination.module';
+import { PaymentsModule } from 'src/payments/payments.module';
+// import { PackagesModule } from 'src/packages/packages.module';
 
 @Module({
   imports: [
@@ -15,7 +17,9 @@ import { PaginationModule } from 'src/pagination/pagination.module';
       FamilyPackage,
       FamilySubscriber,
       FamilySubscriberPayment,
+      // PackagesModule
     ]),
+    PaymentsModule,
     PaginationModule,
   ],
   controllers: [FamilySubscribersController],
