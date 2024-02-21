@@ -63,13 +63,14 @@ export class IndividualSubscribersController {
     @UploadedFile() passportPicture: Multer.File,
     @Req() req: Request,
   ) {
-    if (passportPicture && passportPicture.mimetype.startsWith('image/')) {
+    if (passportPicture && !passportPicture.mimetype.startsWith('image/')) {
       throw new BadRequestException('Uploaded file should be an image.');
     }
 
     const file = passportPicture ? convertFileToBase64(passportPicture) : '';
 
-    console.log(file, createIndividualSubscriberDto,req);
+    // console.log(file, createIndividualSubscriberDto,req);
+    // return true
 
     return this.individualSubscribersService.create(
       createIndividualSubscriberDto,
