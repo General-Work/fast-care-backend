@@ -1,8 +1,10 @@
 import {
   ConflictException,
   HttpStatus,
+  Inject,
   Injectable,
   NotFoundException,
+  forwardRef,
 } from '@nestjs/common';
 import { CreateCorporateSubscriberDto } from './dto/create-corporate-subscriber.dto';
 import { UpdateCorporateSubscriberDto } from './dto/update-corporate-subscriber.dto';
@@ -30,6 +32,7 @@ import {
   PAYMENTMODE,
   PAYMENTSTATUS,
   SUBSCRIBERTYPE,
+  SUBSCRIBER_CODES,
   calculateDiscount,
 } from 'src/lib';
 import { UpdateCorporatePackageDto } from './dto/update-corporate-package.dto';
@@ -64,6 +67,7 @@ export class CorporateSubscribersService {
     @InjectRepository(CorporateSubscriberPayment)
     private readonly corporateSubscriberPaymentRepository: Repository<CorporateSubscriberPayment>,
     private readonly paginationService: PaginationService,
+    @Inject(forwardRef(() => PaymentsService))
     private readonly paymentService: PaymentsService,
   ) {}
 
@@ -445,7 +449,9 @@ export class CorporateSubscribersService {
     corporateSubscriber: CorporateSubscriber,
   ): CorporatePackage {
     const newPackage = new CorporatePackage();
-    const reference = `CNS-${Date.now().toString(36)}-${uuidv4()}`;
+    const reference = `${SUBSCRIBER_CODES.Corporate}-${Date.now().toString(
+      36,
+    )}-${uuidv4()}`;
 
     newPackage.amountToDebit = data.amountToDebit;
     newPackage.createdBy = createdBy;
@@ -527,7 +533,7 @@ export class CorporateSubscribersService {
       confirmed: false,
       confirmedBy: '',
       confirmedDate: null,
-      paymentStatus: PAYMENTSTATUS.Unpaid,
+      paymentStatus: PAYMENTSTATUS.Paid,
       paymentMode: newPackage.paymentMode,
       amountWithOutDiscount: familyPayment.originalAmount,
       amount: familyPayment.amountToDebit,
@@ -680,6 +686,10 @@ export class CorporateSubscribersService {
     return payment;
   }
 
+  async findAllWithoutPagination() {
+    return this.corporateRepository.find();
+  }
+
   private async generateStaffCode(): Promise<string> {
     const latestMemberID = await this.corporateRepository
       .createQueryBuilder('corporate_subscriber')
@@ -707,7 +717,7 @@ export class CorporateSubscribersService {
     const day = ('0' + date.getDate()).slice(-2);
 
     const uniqueNumber = Number(latestUniqueNumber.toString().slice(6)) + 1;
-    return `CNS${year}${month}${day}${uniqueNumber
+    return `${SUBSCRIBER_CODES.Corporate}${year}${month}${day}${uniqueNumber
       .toString()
       .padStart(4, '0')}`;
   }

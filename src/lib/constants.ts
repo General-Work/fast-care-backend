@@ -112,3 +112,9 @@ export interface IPayment {
   mandateId: string | null;
   phoneNumber: string | null;
 }
+
+export enum SUBSCRIBER_CODES {
+  Individual = 'INS',
+  Family = 'FNS',
+  Corporate = 'CNS'
+}

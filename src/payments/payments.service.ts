@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable, forwardRef } from '@nestjs/common';
 import { CreatePaymentDto } from './dto/create-payment.dto';
 import { UpdatePaymentDto } from './dto/update-payment.dto';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -8,74 +8,34 @@ import {
   PaginationOptions,
   PaginationService,
 } from 'src/pagination/pagination.service';
-import { CorporateSubscriberPayment } from 'src/corporate-subscribers/entities/corporate-payment.entity';
+// import { CorporateSubscriberPayment } from 'src/corporate-subscribers/entities/corporate-payment.entity';
 import { Payment } from './entities/payment.entity';
 import { IPayment } from 'src/lib';
+// import { IndividualSubscriber } from 'src/individual-subscribers/entities/individual-subscriber.entity';
+// import { FamilySubscriber } from 'src/family-subscribers/entities/family-subscriber.entity';
+// import { CorporateSubscriber } from 'src/corporate-subscribers/entities/corporate-subscriber.entity';
+// import { FamilySubscriberPayment } from 'src/family-subscribers/entities/family-subscriber-payment.entity';
+import { IndividualSubscribersService } from 'src/individual-subscribers/individual-subscribers.service';
+import { FamilySubscribersService } from 'src/family-subscribers/family-subscribers.service';
+import { CorporateSubscribersService } from 'src/corporate-subscribers/corporate-subscribers.service';
 
 @Injectable()
 export class PaymentsService {
   constructor(
     @InjectRepository(IndividualSubscriberPayment)
     private readonly individualRepositoryPayment: Repository<IndividualSubscriberPayment>,
-    private readonly paginationService: PaginationService,
-
     @InjectRepository(Payment)
     private readonly paymentRepository: Repository<Payment>,
+    private readonly paginationService: PaginationService,
+    @Inject(forwardRef(() => IndividualSubscribersService))
+    private readonly individualSubscriberService: IndividualSubscribersService,
+    @Inject(forwardRef(() => FamilySubscribersService))
+    private readonly familySubscriberService: FamilySubscribersService,
+    @Inject(forwardRef(() => CorporateSubscribersService))
+    private readonly corporateSubscriberService: CorporateSubscribersService,
   ) {}
 
   async findAll(options: PaginationOptions) {
-    // return await this.indivialRepository
-    //   .createQueryBuilder('payment')
-    //   .select([
-    //     'payment.id',
-    //     'payment.dateOfPayment',
-    //     'payment.dateOfSubscription',
-    //     'payment.confirmed',
-    //     'payment.confirmedBy',
-    //     'payment.confirmedDate',
-    //     'payment.paymentStatus',
-    //     'payment.originalAmount',
-    //     'payment.amountToDebit',
-    //     'payment.mandateStatus',
-    //     'payment.mandateID',
-    //     'payment.createdAt',
-    //     'payment.updatedAt',
-    //     'payment.updatedBy',
-    //     'payment.createdBy',
-    //     'subscriber.id',
-    //     'subscriber.idType',
-    //     'subscriber.idNumber',
-    //     'subscriber.membershipID',
-    //     'subscriber.firstName',
-    //     'subscriber.otherNames',
-    //     'subscriber.lastName',
-    //     'subscriber.dateOfBirth',
-    //     'subscriber.gender',
-    //     'subscriber.occupation',
-    //     'subscriber.maritalStatus',
-    //     'subscriber.address',
-    //     'subscriber.gpsAddress',
-    //     'subscriber.phoneOne',
-    //     'subscriber.phoneTwo',
-    //     'subscriber.emergencyPerson',
-    //     'subscriber.emergencyPersonPhone',
-    //     'subscriber.accountNumber',
-    //     'subscriber.chequeNumber',
-    //     'subscriber.CAGDStaffID',
-    //     'subscriber.hasNHIS',
-    //     'subscriber.NHISNumber',
-    //     'subscriber.paymentMode',
-    //     'subscriber.frequency',
-    //     'subscriber.discount',
-    //     'subscriber.momoNetwork',
-    //     'subscriber.momoNumber',
-    //     'subscriber.createdAt as subscriberCreatedAt',
-    //     'subscriber.updatedAt as subscriberUpdatedAt',
-    //     'subscriber.updatedBy as subscriberUpdatedBy',
-    //     'subscriber.createdBy as subscriberCreatedBy',
-    //   ])
-    //   .leftJoin('payment.subscriber', 'subscriber')
-    //   .getMany();
     return this.paginationService.paginate({
       ...options,
       repository: this.paymentRepository,
@@ -106,5 +66,11 @@ export class PaymentsService {
     } catch (error) {
       throw error;
     }
+  }
+
+  async fetchSubscribersAllSubscribers() {
+    const individualSubscriber =
+      await this.individualSubscriberService.findAllWithoutPagination();
+    return individualSubscriber;
   }
 }

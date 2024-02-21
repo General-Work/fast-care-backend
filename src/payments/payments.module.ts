@@ -1,12 +1,15 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { PaymentsService } from './payments.service';
 import { PaymentsController } from './payments.controller';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { IndividualSubscriberPayment } from 'src/individual-subscribers/entities/individual-subscriber-payment.entity';
-import { PaginationModule } from 'src/pagination/pagination.module';
-import { CorporateSubscriberPayment } from 'src/corporate-subscribers/entities/corporate-payment.entity';
-import { FamilySubscriberPayment } from 'src/family-subscribers/entities/family-subscriber-payment.entity';
+import { IndividualSubscriberPayment } from '../individual-subscribers/entities/individual-subscriber-payment.entity';
+import { CorporateSubscriberPayment } from '../corporate-subscribers/entities/corporate-payment.entity';
+import { FamilySubscriberPayment } from '../family-subscribers/entities/family-subscriber-payment.entity';
 import { Payment } from './entities/payment.entity';
+import { PaginationModule } from '../pagination/pagination.module';
+import { IndividualSubscribersModule } from '../individual-subscribers/individual-subscribers.module';
+import { FamilySubscribersModule } from '../family-subscribers/family-subscribers.module';
+import { CorporateSubscribersModule } from '../corporate-subscribers/corporate-subscribers.module';
 
 @Module({
   imports: [
@@ -14,12 +17,15 @@ import { Payment } from './entities/payment.entity';
       IndividualSubscriberPayment,
       CorporateSubscriberPayment,
       FamilySubscriberPayment,
-      Payment
+      Payment,
     ]),
     PaginationModule,
+    forwardRef(() => IndividualSubscribersModule),
+    forwardRef(() => FamilySubscribersModule),
+    forwardRef(() => CorporateSubscribersModule),
   ],
   controllers: [PaymentsController],
   providers: [PaymentsService],
-  exports: [PaymentsService]
+  exports: [PaymentsService],
 })
 export class PaymentsModule {}

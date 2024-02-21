@@ -95,4 +95,9 @@ export class PaymentsController {
       return { error: error.message };
     }
   }
+
+  @Get('all-subscribers')
+  async findAllSubscribers(){
+    return this.paymentsService.fetchSubscribersAllSubscribers()
+  }
 }

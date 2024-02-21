@@ -1,8 +1,10 @@
 import {
   ConflictException,
   HttpStatus,
+  Inject,
   Injectable,
   NotFoundException,
+  forwardRef,
 } from '@nestjs/common';
 import { CreateFamilySubscriberDto } from './dto/create-family-subscriber.dto';
 import { UpdateFamilySubscriberDto } from './dto/update-family-subscriber.dto';
@@ -30,6 +32,7 @@ import {
   PAYMENTMODE,
   PAYMENTSTATUS,
   SUBSCRIBERTYPE,
+  SUBSCRIBER_CODES,
   calculateDiscount,
 } from 'src/lib';
 import { UpdateFamilyPackageDto } from './dto/update-family-package.dto';
@@ -63,6 +66,7 @@ export class FamilySubscribersService {
     @InjectRepository(FamilySubscriberPayment)
     private readonly familySubscriberPaymentRepository: Repository<FamilySubscriberPayment>,
     private readonly paginationService: PaginationService,
+    @Inject(forwardRef(() => PaymentsService))
     private readonly paymentService: PaymentsService,
   ) {}
 
@@ -478,7 +482,9 @@ export class FamilySubscribersService {
     familySubscriber: FamilySubscriber,
   ): FamilyPackage {
     const newPackage = new FamilyPackage();
-    const reference = `FNS-${Date.now().toString(36)}-${uuidv4()}`;
+    const reference = `${SUBSCRIBER_CODES.Family}-${Date.now().toString(
+      36,
+    )}-${uuidv4()}`;
 
     newPackage.amountToDebit = data.amountToDebit;
     newPackage.createdBy = createdBy;
@@ -560,7 +566,7 @@ export class FamilySubscribersService {
       confirmed: false,
       confirmedBy: '',
       confirmedDate: null,
-      paymentStatus: PAYMENTSTATUS.Unpaid,
+      paymentStatus: PAYMENTSTATUS.Paid,
       paymentMode: newPackage.paymentMode,
       amountWithOutDiscount: familyPayment.originalAmount,
       amount: familyPayment.amountToDebit,
@@ -711,6 +717,10 @@ export class FamilySubscribersService {
     }
   }
 
+  async findAllWithoutPagination() {
+    return this.familyRepository.find();
+  }
+
   private async generateStaffCode(): Promise<string> {
     const latestMemberID = await this.familyRepository
       .createQueryBuilder('family_subscriber')
@@ -735,7 +745,7 @@ export class FamilySubscribersService {
     const day = ('0' + date.getDate()).slice(-2);
 
     const uniqueNumber = Number(latestUniqueNumber.toString().slice(6)) + 1;
-    return `FNS${year}${month}${day}${uniqueNumber
+    return `${SUBSCRIBER_CODES.Family}${year}${month}${day}${uniqueNumber
       .toString()
       .padStart(4, '0')}`;
   }

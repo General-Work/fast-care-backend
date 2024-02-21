@@ -2,8 +2,10 @@ import {
   BadRequestException,
   ConflictException,
   HttpStatus,
+  Inject,
   Injectable,
   NotFoundException,
+  forwardRef,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { QueryFailedError, Repository } from 'typeorm';
@@ -27,6 +29,7 @@ import {
   PAYMENTMODE,
   PAYMENTSTATUS,
   SUBSCRIBERTYPE,
+  SUBSCRIBER_CODES,
   calculateDiscount,
   createMandate,
   delay,
@@ -64,6 +67,7 @@ export class IndividualSubscribersService {
     private readonly subscriberPaymentRepository: Repository<IndividualSubscriberPayment>,
     private readonly paginationService: PaginationService,
     private readonly packageService: PackagesService,
+    @Inject(forwardRef(() => PaymentsService))
     private readonly paymentService: PaymentsService,
   ) {}
 
@@ -123,6 +127,27 @@ export class IndividualSubscribersService {
         throw error;
       }
     }
+  }
+
+  async findAllWithoutPagination() {
+    const alias = 'item';
+    const properties = this.subscriberRepository.metadata.columns.map(
+      (column) => `${alias}.${column.propertyName}`,
+    );
+
+    // Filter out 'passportPicture' property
+    const selectedProperties = properties.filter(
+      (property) => property !== `${alias}.passportPicture`,
+    );
+    return this.subscriberRepository
+      .createQueryBuilder(alias)
+      .select(selectedProperties)
+      .leftJoinAndSelect(`${alias}.agent`, 'agent')
+      .leftJoinAndSelect(`${alias}.facility`, 'facility')
+      .leftJoinAndSelect(`${alias}.package`, 'package')
+      .leftJoinAndSelect(`${alias}.group`, 'group')
+      .leftJoinAndSelect(`${alias}.bank`, 'bank')
+      .leftJoinAndSelect(`${alias}.payments`, 'payments');
   }
 
   async findAll(options: PaginationOptions): Promise<PaginatedResult> {
@@ -220,7 +245,7 @@ export class IndividualSubscribersService {
 
     const uniqueNumber = Number(latestUniqueNumber.toString().slice(6)) + 1;
 
-    return `INS${year}${month}${day}${uniqueNumber
+    return `${SUBSCRIBER_CODES.Individual}${year}${month}${day}${uniqueNumber
       .toString()
       .padStart(4, '0')}`;
   }
@@ -282,7 +307,9 @@ export class IndividualSubscribersService {
   ) {
     const subscriber = new IndividualSubscriber();
     const payment = new IndividualSubscriberPayment();
-    const reference = `INS-${Date.now().toString(36)}-${uuidv4()}`;
+    const reference = `${SUBSCRIBER_CODES.Individual}-${Date.now().toString(
+      36,
+    )}-${uuidv4()}`;
 
     // Populate subscriber fields
     subscriber.NHISNumber = data.NHISNumber;
@@ -350,7 +377,7 @@ export class IndividualSubscribersService {
         confirmed: false,
         confirmedBy: '',
         confirmedDate: null,
-        paymentStatus: PAYMENTSTATUS.Unpaid,
+        paymentStatus: PAYMENTSTATUS.Paid,
         paymentMode: subscriber.paymentMode,
         amountWithOutDiscount: paymentDb.originalAmount,
         amount: paymentDb.amountToDebit,

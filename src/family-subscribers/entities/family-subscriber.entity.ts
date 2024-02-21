@@ -49,7 +49,6 @@ export class FamilySubscriber {
     (familyPackage) => familyPackage.familySubscriber,
     {
       nullable: true,
-      eager: true,
       cascade: true,
     },
   )
@@ -59,7 +58,6 @@ export class FamilySubscriber {
     () => FamilyBeneficiaries,
     (beneficiary) => beneficiary.familySubscriber,
     {
-      eager: true,
       cascade: true,
     },
   )

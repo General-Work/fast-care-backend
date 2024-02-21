@@ -25,6 +25,7 @@ import {
   MOMONETWORK,
   PAYMENTMODE,
   PAYMENTSTATUS,
+  SUBSCRIBER_CODES,
   calculateDiscount,
   createMandate,
 } from 'src/lib';
@@ -184,11 +185,7 @@ export class IndividualSubscribersServicesa {
       const subscriber = await this.findOneById(id);
       this.updateSubscriberFields(subscriber, data, passportPicture, updatedBy);
       await this.saveSubscriber(subscriber);
-      await this.updateSubscriberPayment(
-        subscriber,
-        data,
-        updatedBy,
-      );
+      await this.updateSubscriberPayment(subscriber, data, updatedBy);
       return {
         message: 'Subscriber has been successfully updated.',
         status: HttpStatus.OK,
@@ -235,7 +232,7 @@ export class IndividualSubscribersServicesa {
     const day = ('0' + date.getDate()).slice(-2);
 
     const uniqueNumber = Number(latestUniqueNumber.toString().slice(6)) + 1;
-    return `INS${year}${month}${day}${uniqueNumber
+    return `${SUBSCRIBER_CODES.Individual}${year}${month}${day}${uniqueNumber
       .toString()
       .padStart(4, '0')}`;
   }

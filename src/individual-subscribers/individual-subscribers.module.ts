@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { IndividualSubscribersService } from './individual-subscribers.service';
 import { IndividualSubscribersController } from './individual-subscribers.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -16,7 +16,7 @@ import { PaymentsModule } from 'src/payments/payments.module';
     ]),
     PaginationModule,
     PackagesModule,
-    PaymentsModule
+    forwardRef(() => PaymentsModule),
   ],
   controllers: [IndividualSubscribersController],
   providers: [IndividualSubscribersService],

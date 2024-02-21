@@ -6,6 +6,7 @@ import {
   PAYMENTMODE,
   PAYMENTSTATUS,
   SUBSCRIBERTYPE,
+  SUBSCRIBER_CODES,
   cancelMandate,
   cancelPreapproval,
 } from 'src/lib';
@@ -80,9 +81,11 @@ export class MandateService {
 
   async postDebit(data: TransactionDto) {
     const { thirdPartyReferenceNo } = data;
-    const subscriberType = thirdPartyReferenceNo.startsWith('INS')
+    const subscriberType = thirdPartyReferenceNo.startsWith(
+      SUBSCRIBER_CODES.Individual,
+    )
       ? SUBSCRIBERTYPE.Individual
-      : thirdPartyReferenceNo.startsWith('FNS')
+      : thirdPartyReferenceNo.startsWith(SUBSCRIBER_CODES.Family)
         ? SUBSCRIBERTYPE.Family
         : SUBSCRIBERTYPE.Corporate;
     const subscriber =

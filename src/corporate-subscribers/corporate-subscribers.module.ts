@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { CorporateSubscribersService } from './corporate-subscribers.service';
 import { CorporateSubscribersController } from './corporate-subscribers.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -18,9 +18,10 @@ import { PaymentsModule } from 'src/payments/payments.module';
       CorporateSubscriberPayment,
     ]),
     PaginationModule,
-    PaymentsModule,
+    forwardRef(() => PaymentsModule),
   ],
   controllers: [CorporateSubscribersController],
   providers: [CorporateSubscribersService],
+  exports: [CorporateSubscribersService],
 })
 export class CorporateSubscribersModule {}
