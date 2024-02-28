@@ -84,13 +84,28 @@ export class UsersController {
   ) {
     const paginate = getPaginationParams(req);
     const filter =
-      active && active === 'true' ? true : active === 'false' ? false : null;
+      active && active === 'true'
+        ? true
+        : active === 'false'
+          ? false
+          : undefined;
+
+    const filters = [];
+
+    if (filter !== undefined) {
+      filters.push({ confirmed: filter });
+    }
+    const filteredFilters = filters.filter(
+      (filter) => Object.values(filter)[0],
+    );
 
     const options = {
       page,
       pageSize,
       search: query ?? '',
-      filter: { active: filter },
+      filter: filteredFilters.length
+        ? Object.assign({}, ...filteredFilters)
+        : {},
       order: [],
       routeName: paginate.routeName,
       path: paginate.path,
