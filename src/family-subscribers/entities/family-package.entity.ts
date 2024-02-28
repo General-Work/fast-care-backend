@@ -25,13 +25,13 @@ export class FamilyPackage {
   @Column()
   paymentMode: PAYMENTMODE;
 
-  @Column()
+  @Column({ type: 'money', default: '' })
   amountToDebit: number;
 
   @Column()
   frequency: FREQUENCY;
 
-  @Column({ nullable: true })
+  @Column({ nullable: true, default: '' })
   momoNetwork: MOMONETWORK;
 
   @Column({ nullable: true })

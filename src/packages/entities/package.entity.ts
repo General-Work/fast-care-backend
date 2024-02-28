@@ -31,7 +31,7 @@ export class Package {
   @OneToMany(() => CorporateBeneficiaries, (subscriber) => subscriber.package)
   corporateBeneficiaries: CorporateBeneficiaries[];
 
-  @Column()
+  @Column({ type: 'money', default: '' })
   amount: number;
 
   @CreateDateColumn()

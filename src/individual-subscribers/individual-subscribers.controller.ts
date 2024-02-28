@@ -71,6 +71,8 @@ export class IndividualSubscribersController {
 
     // console.log(file, createIndividualSubscriberDto,req);
     // return true
+    // console.log(req.userDetails)
+    // return
 
     return this.individualSubscribersService.create(
       createIndividualSubscriberDto,
@@ -160,7 +162,7 @@ export class IndividualSubscribersController {
   ) {
     const file = passportPicture
       ? convertFileToBase64(passportPicture)
-      : undefined;
+      : '';
 
     return this.individualSubscribersService.update(
       +id,

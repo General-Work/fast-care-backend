@@ -24,12 +24,14 @@ import { Group } from 'src/groups/entities/group.entity';
 import { Package } from 'src/packages/entities/package.entity';
 import {
   IPayment,
+  ISubscriberDto,
   MANDATESTATUS,
   MOMONETWORK,
   PAYMENTMODE,
   PAYMENTSTATUS,
   SUBSCRIBERTYPE,
   SUBSCRIBER_CODES,
+  SUBSCRIBER_STATUS,
   calculateDiscount,
   createMandate,
   delay,
@@ -108,7 +110,7 @@ export class IndividualSubscribersService {
         await this.createMandateIfNeeded(data, subscriber.paymentReferenceCode);
       }
 
-      await this.saveSubscriberAndPayment(subscriber, payment);
+      await this.saveSubscriberAndPayment(subscriber, payment, true, agent);
 
       return {
         message: 'Subscriber has been successfully created.',
@@ -178,7 +180,10 @@ export class IndividualSubscribersService {
   }
 
   async findOneById(id: number) {
-    const subscriber = await this.subscriberRepository.findOneBy({ id });
+    const subscriber = await this.subscriberRepository.findOne({
+      where: { id },
+      relations: ['bank', 'group', 'facility', 'package', 'agent'],
+    });
     if (!subscriber) {
       throw new NotFoundException(`Subscriber with ID ${id} not found`);
     }
@@ -198,8 +203,39 @@ export class IndividualSubscribersService {
     try {
       const subscriber = await this.findOneById(id);
       this.updateSubscriberFields(subscriber, data, passportPicture, updatedBy);
-      await this.saveSubscriber(subscriber);
-      await this.updateSubscriberPayment(subscriber, data, updatedBy);
+      const newSubscriber = await this.saveSubscriber(subscriber);
+      const newPayment = await this.updateSubscriberPayment(
+        subscriber,
+        data,
+        updatedBy,
+      );
+
+      const subscriberData: ISubscriberDto = {
+        name: `${newSubscriber.firstName} ${newSubscriber.otherNames ?? ''} ${
+          newSubscriber.lastName
+        }`,
+        subscriberId: newSubscriber.id,
+        bank: newSubscriber?.bank ?? null,
+        subscriberType: SUBSCRIBERTYPE.Individual,
+        membershipID: newSubscriber.membershipID,
+        individualPaymentId: newPayment.id,
+        discount: newSubscriber.discount,
+        paymentMode: newSubscriber.paymentMode,
+        amountToDebit: newPayment.amountToDebit,
+        originalAmount: newPayment.originalAmount,
+        frequency: newSubscriber.frequency,
+        momoNetwork: newSubscriber.momoNetwork,
+        momoNumber: newSubscriber.momoNumber,
+        accountNumber: newSubscriber.accountNumber,
+        chequeNumber: newSubscriber.chequeNumber,
+        CAGDStaffID: newSubscriber.CAGDStaffID,
+        paymentReferenceCode: newSubscriber.paymentReferenceCode,
+        status: SUBSCRIBER_STATUS.Active,
+      };
+      await this.paymentService.updateSubscriber(
+        subscriberData.paymentReferenceCode,
+        subscriberData,
+      );
       return {
         message: 'Subscriber has been successfully updated.',
         status: HttpStatus.OK,
@@ -367,17 +403,19 @@ export class IndividualSubscribersService {
     subscriber: IndividualSubscriber,
     payment: IndividualSubscriberPayment,
     addPayment: boolean = true,
+    agent: number,
   ) {
     const subscriberDb = await this.subscriberRepository.save(subscriber);
     const paymentDb = await this.subscriberPaymentRepository.save(payment);
 
     if (addPayment && subscriber.paymentMode !== PAYMENTMODE.MOMO) {
       const x: IPayment = {
+        agentId: agent,
         dateOfPayment: new Date(),
         confirmed: false,
         confirmedBy: '',
         confirmedDate: null,
-        paymentStatus: PAYMENTSTATUS.Paid,
+        paymentStatus: PAYMENTSTATUS.Unpaid,
         paymentMode: subscriber.paymentMode,
         amountWithOutDiscount: paymentDb.originalAmount,
         amount: paymentDb.amountToDebit,
@@ -395,6 +433,41 @@ export class IndividualSubscribersService {
       };
       await this.paymentService.makePayment(x);
     }
+
+    const data: ISubscriberDto = {
+      name: `${subscriberDb.firstName} ${subscriberDb.otherNames ?? ''} ${
+        subscriberDb.lastName
+      }`,
+      subscriberId: subscriberDb.id,
+      subscriberType: SUBSCRIBERTYPE.Individual,
+      membershipID: subscriber.membershipID,
+      individualPaymentId: paymentDb.id,
+      bank: subscriberDb?.bank ?? null,
+      discount: subscriberDb.discount,
+
+      paymentMode: subscriberDb.paymentMode,
+
+      amountToDebit: paymentDb.amountToDebit,
+
+      originalAmount: paymentDb.originalAmount,
+
+      frequency: subscriberDb.frequency,
+
+      momoNetwork: subscriberDb.momoNetwork,
+
+      momoNumber: subscriberDb.momoNumber,
+
+      accountNumber: subscriberDb.accountNumber,
+
+      chequeNumber: subscriberDb.chequeNumber,
+
+      CAGDStaffID: subscriberDb.CAGDStaffID,
+
+      paymentReferenceCode: subscriberDb.paymentReferenceCode,
+      status: SUBSCRIBER_STATUS.Active,
+    };
+
+    await this.paymentService.addToAllSubscribers(data);
   }
 
   private updateSubscriberFields(
@@ -464,6 +537,10 @@ export class IndividualSubscribersService {
         const bank = new Bank();
         bank.id = +data.bank;
         subscriber.bank = bank;
+      } else if (subscriber.bank && !data.bank) {
+        subscriber.bank = null;
+      } else {
+        subscriber.bank = null;
       }
     } else if (paymentMode === PAYMENTMODE.MOMO) {
       subscriber.momoNetwork = data.momoNetwork ?? subscriber.momoNetwork;
@@ -484,6 +561,10 @@ export class IndividualSubscribersService {
         const bank = new Bank();
         bank.id = +data.bank;
         subscriber.bank = bank;
+      } else if (subscriber.bank && !data.bank) {
+        subscriber.bank = null;
+      } else {
+        subscriber.bank = null;
       }
     }
   }
@@ -492,6 +573,8 @@ export class IndividualSubscribersService {
     subscriber: IndividualSubscriber,
     data: UpdateIndividualSubscriberDto,
   ): void {
+    // console.log(subscriber);
+    // console.log(data);
     if (data.facility) {
       subscriber.facility.id = +data.facility;
     }
@@ -505,13 +588,15 @@ export class IndividualSubscribersService {
       const group = new Group();
       group.id = +data.group;
       subscriber.group = group;
+    } else if (subscriber.group && !data.group) {
+      subscriber.group = null;
+    } else {
+      subscriber.group = null;
     }
   }
 
-  private async saveSubscriber(
-    subscriber: IndividualSubscriber,
-  ): Promise<void> {
-    await this.subscriberRepository.save(subscriber);
+  private async saveSubscriber(subscriber: IndividualSubscriber) {
+    return await this.subscriberRepository.save(subscriber);
   }
 
   private async updateSubscriberPayment(

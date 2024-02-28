@@ -188,6 +188,8 @@ export class CorporateSubscribersController {
     return this.corporateSubscribersService.createPackage(
       data,
       req.userDetails.user,
+      req.userDetails.staffDbId,
+      // req.userDetails.userId
     );
   }
 
@@ -204,7 +206,7 @@ export class CorporateSubscribersController {
     );
   }
 
-  @Get('corportate-package/:id')
+  @Get('corporate-package/:id')
   findFamilyPackage(@Param('id') id: string) {
     return this.corporateSubscribersService.findFamilyPacakge(+id);
   }

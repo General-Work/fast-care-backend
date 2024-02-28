@@ -1,3 +1,5 @@
+import { Bank } from "src/bank/entities/bank.entity";
+
 export const PERMISSIONS = [
   'View_Dashboard',
   'Manage_Users',
@@ -111,10 +113,62 @@ export interface IPayment {
   debitOrderTransactionId: string | null;
   mandateId: string | null;
   phoneNumber: string | null;
+  agentId?: number
 }
 
 export enum SUBSCRIBER_CODES {
   Individual = 'INS',
   Family = 'FNS',
-  Corporate = 'CNS'
+  Corporate = 'CNS',
+}
+
+export enum SUBSCRIBER_STATUS {
+  Inactive = 'Inactive',
+  Active = 'Active',
+}
+
+export interface ISubscriberDto {
+  name: string;
+
+  subscriberId: number;
+
+  membershipID: string;
+
+  subscriberType: SUBSCRIBERTYPE;
+
+  familyPackageId?: number;
+
+  corporatePackageId?: number;
+
+  individualPaymentId?: number;
+
+  familyPaymentId?: number;
+
+  corporatePaymentId?: number;
+
+  discount: DISCOUNT;
+
+  paymentMode: PAYMENTMODE;
+
+  amountToDebit: number;
+
+  originalAmount: number;
+
+  frequency: FREQUENCY;
+
+  momoNetwork: MOMONETWORK;
+
+  momoNumber: string;
+
+  accountNumber: string;
+
+  bank?: Bank
+
+  chequeNumber: string;
+
+  CAGDStaffID: string;
+
+  paymentReferenceCode: string;
+
+  status: SUBSCRIBER_STATUS;
 }

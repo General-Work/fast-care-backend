@@ -106,10 +106,10 @@ export class IndividualSubscriber {
   @Column()
   discount: DISCOUNT;
 
-  @Column({ nullable: true })
+  @Column({ nullable: true, default: '' })
   momoNetwork: MOMONETWORK;
 
-  @Column({ nullable: true })
+  @Column({ nullable: true, default: '' })
   momoNumber: string;
 
   @CreateDateColumn()

@@ -10,6 +10,8 @@ import { PaginationModule } from '../pagination/pagination.module';
 import { IndividualSubscribersModule } from '../individual-subscribers/individual-subscribers.module';
 import { FamilySubscribersModule } from '../family-subscribers/family-subscribers.module';
 import { CorporateSubscribersModule } from '../corporate-subscribers/corporate-subscribers.module';
+import { AllSubscribers } from './entities/all-subscribers.entity';
+import { Bank } from 'src/bank/entities/bank.entity';
 
 @Module({
   imports: [
@@ -18,6 +20,8 @@ import { CorporateSubscribersModule } from '../corporate-subscribers/corporate-s
       CorporateSubscriberPayment,
       FamilySubscriberPayment,
       Payment,
+      Bank,
+      AllSubscribers,
     ]),
     PaginationModule,
     forwardRef(() => IndividualSubscribersModule),

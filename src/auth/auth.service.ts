@@ -48,7 +48,7 @@ export class AuthService {
       // role: user.role,
 
       sub: {
-        name: `${user.staff.firstName} ${user.staff.otherNames ?? ''} ${
+        name: `${user.staff.firstName} ${user?.staff?.otherNames ?? ''} ${
           user.staff.lastName
         }`,
       },
@@ -74,7 +74,7 @@ export class AuthService {
       staffCode: data.staff.staffCode,
       roleId: data.role.id,
       sub: {
-        name: `${data.staff.firstName} ${data.staff.otherNames ?? ''} ${
+        name: `${data.staff.firstName} ${data?.staff?.otherNames ?? ''} ${
           data.staff.lastName
         }`,
       },

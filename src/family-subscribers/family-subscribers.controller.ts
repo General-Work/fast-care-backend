@@ -188,6 +188,7 @@ export class FamilySubscribersController {
     return this.familySubscribersService.createPackage(
       data,
       req.userDetails.user,
+      req.userDetails.staffDbId
     );
   }
 

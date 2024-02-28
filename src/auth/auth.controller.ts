@@ -14,7 +14,7 @@ export class AuthController {
   @UseGuards(LocalAuthGuard)
   @Post('login')
   async login(@Body() loginDto: LoginDto, @Request() req) {
-    // console.log(req.user)
+    // console.log(req.user, loginDto);
     return await this.authService.login(req.user);
   }
 

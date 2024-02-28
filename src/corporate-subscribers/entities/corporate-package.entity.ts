@@ -45,19 +45,22 @@ export class CorporatePackage {
   @Column()
   frequency: FREQUENCY;
 
-  @Column({ nullable: true })
+  @Column({ nullable: true, default: '' })
   momoNetwork: MOMONETWORK;
 
   @Column({ nullable: true })
   momoNumber: string;
 
-  @OneToOne(() => CorporateSubscriber, (family) => family.corporatePackage)
+  @OneToOne(() => CorporateSubscriber, (family) => family.corporatePackage, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'corporateSubscriberId' })
   corporateSubscriber: CorporateSubscriber;
 
   @OneToMany(
     () => CorporateSubscriberPayment,
     (payment) => payment.corporatePackage,
+    { onDelete: 'CASCADE' },
   )
   payments: CorporateSubscriberPayment[];
 

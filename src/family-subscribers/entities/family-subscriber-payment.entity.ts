@@ -33,10 +33,10 @@ export class FamilySubscriberPayment {
   @CreateDateColumn()
   confirmedDate: Date;
 
-  @Column({ nullable: true })
+  @Column({ nullable: true, type: 'money' })
   originalAmount: number;
 
-  @Column({ nullable: true })
+  @Column({ nullable: true, type: 'money' })
   amountToDebit: number;
 
   @Column({ nullable: true })
@@ -45,7 +45,7 @@ export class FamilySubscriberPayment {
   @Column({ default: '' })
   mandateID: string;
 
-  @Column()
+  @Column({ default: PAYMENTSTATUS.Unpaid })
   paymentStatus: PAYMENTSTATUS;
 
   @ManyToOne(() => FamilyPackage, { onDelete: 'CASCADE' })

@@ -36,10 +36,10 @@ export class CorporateSubscriberPayment {
   @Column({ default: '' })
   referenceCode: string;
 
-  @Column({ nullable: true })
+  @Column({ nullable: true, type: 'money' })
   originalAmount: number;
 
-  @Column({ nullable: true })
+  @Column({ nullable: true, type: 'money' })
   amountToDebit: number;
 
   @Column({ nullable: true })
