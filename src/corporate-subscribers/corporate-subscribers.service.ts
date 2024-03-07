@@ -160,6 +160,13 @@ export class CorporateSubscribersService {
     });
   }
 
+  async findOneWithRelations(id: number) {
+    return this.corporateRepository.findOne({
+      where: { id },
+      relations: ['agent', 'corporatePackage', 'beneficiaries'],
+    });
+  }
+
   async findOneById(id: number) {
     const res = await this.corporateRepository.findOneBy({ id });
     if (!res) {
@@ -447,7 +454,7 @@ export class CorporateSubscribersService {
         corporateSubscriber,
         newPackage,
         corporatePayment,
-        agent
+        agent,
       );
       // }
 
@@ -621,7 +628,7 @@ export class CorporateSubscribersService {
     familySubscriber: CorporateSubscriber,
     newPackage: CorporatePackage,
     familyPayment: CorporateSubscriberPayment,
-    agent: number
+    agent: number,
   ) {
     const paymentData: IPayment = {
       dateOfPayment: new Date(),

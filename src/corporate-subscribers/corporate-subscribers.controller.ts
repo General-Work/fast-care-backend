@@ -27,7 +27,7 @@ import { UpdateCorporatePackageDto } from './dto/update-corporate-package.dto';
 import { extractColumnAndDirection, getPaginationParams } from 'src/lib';
 
 @ApiTags('Corporate Subscribers')
-@UseGuards(JwtGuard)
+// @UseGuards(JwtGuard)
 @Controller('corporate-subscribers')
 export class CorporateSubscribersController {
   constructor(
@@ -116,7 +116,7 @@ export class CorporateSubscribersController {
 
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.corporateSubscribersService.findOneById(+id);
+    return this.corporateSubscribersService.findOneWithRelations(+id);
   }
 
   @Patch(':id')

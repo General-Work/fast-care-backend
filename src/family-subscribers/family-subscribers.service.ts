@@ -161,6 +161,12 @@ export class FamilySubscribersService {
     });
   }
 
+  async findOneWithRelations(id: number) {
+    return  this.familyRepository.findOne({
+      where: { id },
+      relations: ['agent', 'familyPackage', 'beneficiaries'],
+    });
+  }
   async findOneById(id: number) {
     const res = await this.familyRepository.findOneBy({ id });
     if (!res) {

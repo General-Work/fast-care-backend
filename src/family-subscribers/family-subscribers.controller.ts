@@ -116,7 +116,7 @@ export class FamilySubscribersController {
 
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.familySubscribersService.findOneById(+id);
+    return this.familySubscribersService.findOneWithRelations(+id);
   }
 
   @Patch(':id')
@@ -188,7 +188,7 @@ export class FamilySubscribersController {
     return this.familySubscribersService.createPackage(
       data,
       req.userDetails.user,
-      req.userDetails.staffDbId
+      req.userDetails.staffDbId,
     );
   }
 
