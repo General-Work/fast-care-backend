@@ -21,6 +21,9 @@ export class Payment {
   @Column()
   dateOfPayment: Date;
 
+  @CreateDateColumn()
+  createdAt: Date;
+
   @Column({ default: false })
   confirmed: boolean;
 

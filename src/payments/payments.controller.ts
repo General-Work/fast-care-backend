@@ -16,6 +16,7 @@ import { ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { extractColumnAndDirection, getPaginationParams } from 'src/lib';
 import { Request } from 'express';
 import { PremiumPayment } from './dto/premium-payment.dto';
+import { PaginationOptions } from 'src/pagination/pagination.service';
 
 enum IPAYMENT_SORT {
   id_asc = 'id_asc',
@@ -85,6 +86,18 @@ export class PaymentsController {
     type: Boolean,
     description: 'Filter confirmed',
   })
+  @ApiQuery({
+    name: 'startDate',
+    required: false,
+    type: Date,
+    description: 'Filter startDate',
+  })
+  @ApiQuery({
+    name: 'endDate',
+    required: false,
+    type: Date,
+    description: 'Filter endDate',
+  })
   // @ApiQuery({
   //   name: 'filter',
   //   required: false,
@@ -103,12 +116,12 @@ export class PaymentsController {
     @Query('confirmed') confirmed: string,
     @Query('agentId') agentId: string,
     @Query('sort') sort: IPAYMENT_SORT,
-    @Query('filter') filterBy: PAYMENT_FILTER,
+    @Query('startDate') startDate: Date,
+    @Query('endDate') endDate: Date,
     @Req() req: Request,
   ) {
     const paginate = getPaginationParams(req);
 
-    // console.log(filterBy);
     const filter =
       confirmed && confirmed === 'true'
         ? true
@@ -116,7 +129,6 @@ export class PaymentsController {
           ? false
           : undefined;
 
-    // console.log(filter);
     const agent = agentId ? +agentId : undefined;
 
     const filters = [];
@@ -127,14 +139,9 @@ export class PaymentsController {
 
     if (filter !== undefined) {
       filters.push({ confirmed: filter });
-      // console.log(filters);
     }
-    // const filteredFilters = filters.filter(
-    //   (filter) => filter.confirmed !== undefined && filter.confirmed !== null,
-    // );
 
-    // console.log(filteredFilters);
-    const options = {
+    const options: any = {
       page,
       pageSize,
       search: query ?? '',
@@ -144,6 +151,12 @@ export class PaymentsController {
       path: paginate.path,
       query: paginate.query,
     };
+    if (startDate) {
+      options.dateRange = {
+        startDate,
+        endDate: endDate ? endDate : new Date(),
+      };
+    }
 
     try {
       if (sort) {
@@ -153,8 +166,6 @@ export class PaymentsController {
       const result = await this.paymentsService.findAll(options);
       return result;
     } catch (error) {
-      // Handle errors or return appropriate HTTP responses
-      // console.log('here', error)
       return { error: error.message };
     }
   }
@@ -175,7 +186,7 @@ export class PaymentsController {
   @ApiQuery({
     name: 'search',
     required: false,
-    type: String,
+    type: Date,
     description: 'Search column',
   })
   @ApiQuery({
@@ -234,4 +245,15 @@ export class PaymentsController {
   confirmPayment(@Param('id') id: string, @Req() req: Request) {
     return this.paymentsService.confirmPayment(+id, req.userDetails.user);
   }
+  // @Post('updateCreatedAt')
+  // async updateCreatedAtToPaymentDate(): Promise<string> {
+  //   try {
+  //     await this.paymentsService.updateCreatedAtToPaymentDate();
+  //     return 'createdAt fields updated successfully.';
+  //   } catch (error) {
+  //     // Handle error appropriately
+  //     console.error('Error occurred while updating createdAt:', error);
+  //     throw new Error('Failed to update createdAt fields.');
+  //   }
+  // }
 }

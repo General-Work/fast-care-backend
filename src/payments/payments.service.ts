@@ -236,4 +236,22 @@ export class PaymentsService {
       throw e;
     }
   }
+
+  // async updateCreatedAtToPaymentDate(): Promise<void> {
+  //   try {
+  //     const paymentsToUpdate = await this.paymentRepository.find({
+  //       select: ['id', 'dateOfPayment'],
+  //     });
+
+  //     for (const payment of paymentsToUpdate) {
+  //       await this.paymentRepository.update(
+  //         { id: payment.id },
+  //         { createdAt: payment.dateOfPayment },
+  //       );
+  //     }
+  //   } catch (error) {
+  //     // Handle error appropriately
+  //     console.error('Error occurred while updating createdAt:', error);
+  //   }
+  // }
 }

@@ -12,6 +12,7 @@ export interface PaginationOptions {
   page?: number;
   pageSize?: number;
   filter?: Record<string, any>;
+  dateRange?: { startDate: Date; endDate: Date }; // Add dateRange field
   order?: OrderBy[];
   repository?: Repository<any> | SelectQueryBuilder<any>;
   routeName: string;
@@ -53,6 +54,7 @@ export class PaginationService {
       page,
       pageSize,
       filter,
+      dateRange,
       order,
       repository,
       routeName,
@@ -85,6 +87,10 @@ export class PaginationService {
 
     if (filter) {
       this.applyWhereConditions(queryBuilder, filter);
+    }
+
+    if (dateRange) {
+      this.applyDateRangeConditions(queryBuilder, dateRange);
     }
 
     if (search) {
@@ -162,6 +168,16 @@ export class PaginationService {
       } else {
         queryBuilder.andWhere(`item.${key} = :${key}`, { [key]: value });
       }
+    });
+  }
+
+  private applyDateRangeConditions(
+    queryBuilder: SelectQueryBuilder<any>,
+    dateRange: { startDate: Date; endDate: Date },
+  ): void {
+    queryBuilder.andWhere('item.createdAt BETWEEN :startDate AND :endDate', {
+      startDate: dateRange.startDate,
+      endDate: dateRange.endDate,
     });
   }
 
