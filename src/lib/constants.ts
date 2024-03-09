@@ -1,4 +1,4 @@
-import { Bank } from "src/bank/entities/bank.entity";
+import { Bank } from 'src/bank/entities/bank.entity';
 
 export const PERMISSIONS = [
   'View_Dashboard',
@@ -31,6 +31,7 @@ export enum GENDER {
 }
 
 export enum MARITALSTATUS {
+  None = '',
   Married = 'Married',
   Single = 'Single',
   Divorced = 'Divorced',
@@ -113,7 +114,7 @@ export interface IPayment {
   debitOrderTransactionId: string | null;
   mandateId: string | null;
   phoneNumber: string | null;
-  agentId?: number
+  agentId?: number;
 }
 
 export enum SUBSCRIBER_CODES {
@@ -162,7 +163,7 @@ export interface ISubscriberDto {
 
   accountNumber: string;
 
-  bank?: Bank
+  bank?: Bank;
 
   chequeNumber: string;
 

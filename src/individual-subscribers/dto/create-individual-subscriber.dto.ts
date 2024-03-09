@@ -70,13 +70,16 @@ export class CreateIndividualSubscriberDto {
   })
   gender: GENDER;
 
-  @IsNotEmpty({ message: 'Occupation can not be null' })
-  @IsString({ message: 'Occupation should be a string' })
-  @ApiProperty()
+  @IsOptional()
+  @ApiProperty({ required: false })
   occupation: string;
 
-  @IsNotEmpty({ message: 'Marital Status can not be null' })
-  @ApiProperty({ enum: MARITALSTATUS, example: MARITALSTATUS.Single })
+  @IsOptional()
+  @ApiProperty({
+    required: false,
+    enum: MARITALSTATUS,
+    example: MARITALSTATUS.None,
+  })
   maritalStatus: MARITALSTATUS;
 
   @IsNotEmpty({ message: 'Address can not be null' })
@@ -84,9 +87,9 @@ export class CreateIndividualSubscriberDto {
   @ApiProperty()
   address: string;
 
-  @IsNotEmpty({ message: 'GPS Address can not be null' })
+  @IsOptional()
   @IsString({ message: 'GPS Address should be a string' })
-  @ApiProperty()
+  @ApiProperty({ required: false })
   gpsAddress: string;
 
   @IsNotEmpty({ message: 'Phone One can not be null' })

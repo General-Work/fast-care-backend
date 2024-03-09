@@ -55,16 +55,16 @@ export class IndividualSubscriber {
   @Column()
   gender: GENDER;
 
-  @Column()
+  @Column({ default: '' })
   occupation: string;
 
-  @Column()
+  @Column({ default: MARITALSTATUS.None })
   maritalStatus: MARITALSTATUS;
 
   @Column()
   address: string;
 
-  @Column()
+  @Column({ default: '' })
   gpsAddress: string;
 
   @Column()
