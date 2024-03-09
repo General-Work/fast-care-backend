@@ -28,6 +28,12 @@ enum IPAYMENT_SORT {
   paymentMode_desc = 'paymentMode_desc',
 }
 
+enum PAYMENT_FILTER {
+  confirmed_true = 'confirmed_true',
+  confirmed_false = 'confirmed_false',
+  agentId = 'agentId',
+}
+
 enum ISUBSCRIBER_SORT {
   id_asc = 'id_asc',
   id_desc = 'id_desc',
@@ -79,6 +85,12 @@ export class PaymentsController {
     type: Boolean,
     description: 'Filter confirmed',
   })
+  // @ApiQuery({
+  //   name: 'filter',
+  //   required: false,
+  //   enum: PAYMENT_FILTER,
+  //   description: 'Filter payment by these',
+  // })
   @ApiResponse({
     status: 200,
     description: 'Successful operation',
@@ -91,15 +103,20 @@ export class PaymentsController {
     @Query('confirmed') confirmed: string,
     @Query('agentId') agentId: string,
     @Query('sort') sort: IPAYMENT_SORT,
+    @Query('filter') filterBy: PAYMENT_FILTER,
     @Req() req: Request,
   ) {
     const paginate = getPaginationParams(req);
+
+    // console.log(filterBy);
     const filter =
       confirmed && confirmed === 'true'
         ? true
         : confirmed === 'false'
           ? false
           : undefined;
+
+    // console.log(filter);
     const agent = agentId ? +agentId : undefined;
 
     const filters = [];
@@ -110,18 +127,18 @@ export class PaymentsController {
 
     if (filter !== undefined) {
       filters.push({ confirmed: filter });
+      // console.log(filters);
     }
-    const filteredFilters = filters.filter(
-      (filter) => Object.values(filter)[0],
-    );
+    // const filteredFilters = filters.filter(
+    //   (filter) => filter.confirmed !== undefined && filter.confirmed !== null,
+    // );
 
+    // console.log(filteredFilters);
     const options = {
       page,
       pageSize,
       search: query ?? '',
-      filter: filteredFilters.length
-        ? Object.assign({}, ...filteredFilters)
-        : {},
+      filter: filters.length ? Object.assign({}, ...filters) : {},
       order: [],
       routeName: paginate.routeName,
       path: paginate.path,
