@@ -327,6 +327,17 @@ export class CorporateSubscribersService {
     return corporate.beneficiaries;
   }
 
+  // async findCorporateBeneficiaries(id: number) {
+  //   return await this.corporateBeneficiayRepository
+  //     .createQueryBuilder('beneficiary')
+  //     .leftJoinAndSelect('beneficiary.facility', 'facility')
+  //     .leftJoinAndSelect('beneficiary.package', 'package')
+  //     .where('beneficiary.corporateSubscriber.id = :corporateSubscriberId', {
+  //       id,
+  //     })
+  //     .getMany();
+  // }
+
   // async createPackage(data: CreateCorporatePackageDto, createdBy: string) {
   //   const corporateSubscriber = await this.findOneById(data.corporateId);
 

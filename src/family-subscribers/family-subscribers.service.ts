@@ -493,6 +493,8 @@ export class FamilySubscribersService {
 
     const subscriberData: ISubscriberDto = {
       name: familySubscriber.name,
+      // amountDue: 12,
+      // daysSinceLastPayment: 0,
       subscriberId: familySubscriber.id,
       subscriberType: SUBSCRIBERTYPE.Family,
       familyPackageId: newPackage.id,

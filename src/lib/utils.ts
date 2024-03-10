@@ -2,6 +2,10 @@ import * as bcryt from 'bcrypt';
 import { SelectQueryBuilder } from 'typeorm';
 import { Multer } from 'multer';
 import { Request } from 'express';
+import * as dayjs from 'dayjs';
+import { CorporateBeneficiaries } from 'src/corporate-subscribers/entities/corporate-beneficiaries.entity';
+import { FamilyBeneficiaries } from 'src/family-subscribers/entities/family-beneficiaries.entity';
+import { Payment } from 'src/payments/entities/payment.entity';
 
 export function generateDefaultPassword(): string {
   const length = 8; // Length of the default password
@@ -98,4 +102,48 @@ export function getPaginationParams(req: Request) {
 
 export function delay(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+export function getDaysDifferenceFromDate(dateString) {
+  if (dateString === null || undefined) {
+    return 0;
+  }
+  const givenDate = dayjs(dateString);
+
+  const currentDate = dayjs();
+
+  const daysDifference = currentDate.diff(givenDate, 'day');
+
+  return daysDifference;
+}
+
+export function getCurrentPaymentDate(payments: Payment[]) {
+  if (payments.length === 0 || !payments.some(p => p.confirmed)) {
+    return null; // Return null if there are no confirmed payments
+  }
+
+  // Find the latest confirmed payment date
+  const latestPayment = payments.reduce((latest, payment) => {
+    const paymentDate = new Date(payment.dateOfPayment);
+    if (payment.confirmed && paymentDate > latest.date) {
+      return { date: paymentDate, daysDifference: getDaysDifferenceFromDate(paymentDate) ?? 0 };
+    }
+    return latest;
+  }, { date: new Date(0), daysDifference: 0 });
+
+  return {
+    currentPaymentDate: latestPayment.date,
+    daysDifference: latestPayment.daysDifference,
+  };
+}
+
+
+export function sumPackageAmounts(
+  beneficiaries: CorporateBeneficiaries[] | FamilyBeneficiaries[],
+): number {
+  let totalAmount = 0;
+  beneficiaries.forEach((beneficiary) => {
+    totalAmount += beneficiary.package.amount;
+  });
+  return totalAmount;
 }

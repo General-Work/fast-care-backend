@@ -128,8 +128,19 @@ export enum SUBSCRIBER_STATUS {
   Active = 'Active',
 }
 
+export enum SUBSCRIBER_PAYMENT_STATUS {
+  Today = 'Made payment today',
+  NotConfirmed = 'Has payment pending confirmation',
+  AmountDue = 'Has amount due payment',
+  NoPayment = "Has no payment"
+}
+
 export interface ISubscriberDto {
   name: string;
+  // //
+  //   amountDue: number
+
+  //   daysSinceLastPayment:number
 
   subscriberId: number;
 

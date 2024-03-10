@@ -17,6 +17,12 @@ export class AllSubscribers {
   @Column()
   name: string;
 
+  // @Column({type:'money', default:''})
+  // amountDue:number
+
+  // @Column({default:''})
+  // daysSinceLastPayment: number
+
   @Column()
   subscriberId: number;
 

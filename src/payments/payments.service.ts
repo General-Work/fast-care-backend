@@ -24,7 +24,10 @@ import {
   PAYMENTMODE,
   PAYMENTSTATUS,
   SUBSCRIBERTYPE,
+  SUBSCRIBER_PAYMENT_STATUS,
   calculateDiscount,
+  getCurrentPaymentDate,
+  sumPackageAmounts,
 } from 'src/lib';
 // import { IndividualSubscriber } from 'src/individual-subscribers/entities/individual-subscriber.entity';
 // import { FamilySubscriber } from 'src/family-subscribers/entities/family-subscriber.entity';
@@ -92,11 +95,78 @@ export class PaymentsService {
   }
 
   async fetchSubscribersAllSubscribers(options: PaginationOptions) {
-    return this.paginationService.paginate({
+    const data = await this.paginationService.paginate({
       ...options,
       repository: this.allSubscriberRepository,
       relations: ['bank'],
     });
+
+    const newData = await Promise.all(
+      data.data.map(async (d: AllSubscribers) => {
+        let amountDue: number = 0;
+        let daysSinceLastPayment: number | null = null;
+        let subscriberDetails: any;
+        let paymentStatus: SUBSCRIBER_PAYMENT_STATUS;
+
+        switch (d.subscriberType) {
+          case SUBSCRIBERTYPE.Individual:
+            subscriberDetails =
+              await this.individualSubscriberService.findOneById(
+                d.subscriberId,
+              );
+            break;
+          case SUBSCRIBERTYPE.Corporate:
+            subscriberDetails =
+              await this.corporateSubscriberService.findOneWithRelations(
+                d.subscriberId,
+              );
+            break;
+          default:
+            subscriberDetails =
+              await this.familySubscriberService.findOneWithRelations(
+                d.subscriberId,
+              );
+            break;
+        }
+
+        const payments = await this.findSubscriberPayments(d.subscriberId);
+
+        if (payments.length === 0) {
+          paymentStatus = SUBSCRIBER_PAYMENT_STATUS.NoPayment;
+        }
+
+        if (subscriberDetails && payments.length > 0) {
+          const packageAmount =
+            d.subscriberType === SUBSCRIBERTYPE.Individual
+              ? subscriberDetails.package.amount
+              : sumPackageAmounts(subscriberDetails.beneficiaries);
+
+          const currentPayment = getCurrentPaymentDate(payments);
+          if (currentPayment !== null) {
+            amountDue = +(
+              (packageAmount / 30) *
+              currentPayment.daysDifference
+            ).toFixed(2);
+            daysSinceLastPayment = currentPayment.daysDifference;
+            paymentStatus =
+              daysSinceLastPayment === 0
+                ? SUBSCRIBER_PAYMENT_STATUS.Today
+                : SUBSCRIBER_PAYMENT_STATUS.AmountDue;
+          } else {
+            paymentStatus = SUBSCRIBER_PAYMENT_STATUS.NotConfirmed;
+          }
+        }
+
+        return {
+          ...d,
+          amountDue,
+          daysSinceLastPayment,
+          paymentStatus,
+        };
+      }),
+    );
+
+    return newData;
   }
 
   async addToAllSubscribers(data: ISubscriberDto) {
@@ -108,6 +178,9 @@ export class PaymentsService {
     }
   }
 
+  async findSubscriberPayments(id: number) {
+    return this.paymentRepository.find({ where: { subscriberDbId: id } });
+  }
   async updateSubscriber(referenceCode: string, data: Partial<ISubscriberDto>) {
     try {
       const subscriber = await this.allSubscriberRepository.findOneBy({
