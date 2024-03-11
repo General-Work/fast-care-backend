@@ -37,6 +37,7 @@ import {
   SUBSCRIBER_CODES,
   SUBSCRIBER_STATUS,
   calculateDiscount,
+  delay,
 } from 'src/lib';
 import { UpdateCorporatePackageDto } from './dto/update-corporate-package.dto';
 import { Bank } from 'src/bank/entities/bank.entity';
@@ -835,6 +836,95 @@ export class CorporateSubscribersService {
 
   async findAllWithoutPagination() {
     return this.corporateRepository.find();
+  }
+
+  async updateMandateStatus(data: {
+    momoNumber: string;
+    referenceCode: string;
+    mandateID: string;
+    mandateStatus: MANDATESTATUS;
+    success: boolean;
+  }) {
+    try {
+      return await this.updateMandateStatusWithRetry(data);
+    } catch (e) {
+      return e; // Handling the error outside
+    }
+  }
+
+  private async updateMandateStatusWithRetry(
+    data: {
+      momoNumber: string;
+      referenceCode: string;
+      mandateID: string;
+      mandateStatus: MANDATESTATUS;
+      success: boolean;
+    },
+    retryCount: number = 0,
+  ): Promise<HttpStatus> {
+    try {
+      const result = await this.findAndProcessSubscriberPayment(data);
+      if (result === null && retryCount < 3) {
+        // Retry after 2 minutes
+        await delay(1 * 60 * 1000);
+        return await this.updateMandateStatusWithRetry(
+          data,
+
+          retryCount + 1,
+        );
+      }
+      return result;
+    } catch (e) {
+      throw e; // Re-throwing the error to handle it outside
+    }
+  }
+
+  private async findAndProcessSubscriberPayment(
+    data: {
+      momoNumber: string;
+      referenceCode: string;
+      mandateID: string;
+      mandateStatus: MANDATESTATUS;
+      success: boolean;
+    },
+    // subscriberRepository: SubscriberRepository,
+    // subscriberPaymentRepository: SubscriberPaymentRepository,
+  ): Promise<HttpStatus> {
+    try {
+      const payment = await this.corporateSubscriberPaymentRepository
+        .createQueryBuilder('payment')
+        // .select(['id', 'payments'])
+        .where('payment.referenceCode = :referenceCode', {
+          referenceCode: data.referenceCode,
+        })
+        .orderBy('payment.id', 'DESC')
+        .select(['payment'])
+        .getOne();
+
+      console.log(payment);
+
+      if (!payment) {
+        return null;
+      }
+
+      const paymentToUpdate = payment;
+      paymentToUpdate.confirmed = data.success ? true : false;
+      paymentToUpdate.confirmedBy = data.success ? 'Payment gateway' : '';
+      paymentToUpdate.confirmedDate = data.success
+        ? new Date()
+        : payment.confirmedDate;
+      paymentToUpdate.mandateID = data.mandateID;
+      paymentToUpdate.mandateStatus = data.mandateStatus;
+
+      // console.log(paymentToUpdate);
+
+      await this.corporateSubscriberPaymentRepository.save(paymentToUpdate);
+
+      // console.log('res', res);
+    } catch (e) {
+      console.log(e); // Re-throwing the error to handle it outside
+      return null;
+    }
   }
 
   private async generateStaffCode(): Promise<string> {

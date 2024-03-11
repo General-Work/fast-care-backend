@@ -33,7 +33,7 @@ export class IndividualSubscriberPayment {
   @Column({ default: '' })
   referenceCode: string;
 
-  @Column()
+  @Column({ default: PAYMENTSTATUS.Unpaid })
   paymentStatus: PAYMENTSTATUS;
 
   @Column({ nullable: true, type: 'money' })

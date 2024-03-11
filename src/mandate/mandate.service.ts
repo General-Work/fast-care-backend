@@ -5,10 +5,14 @@ import {
   MANDATESTATUS,
   PAYMENTMODE,
   PAYMENTSTATUS,
+  PaymentRespose,
   SUBSCRIBERTYPE,
   SUBSCRIBER_CODES,
   cancelMandate,
   cancelPreapproval,
+  readMandateStatusForMomoNumber,
+  readMandatesForAMomoNumber,
+  sendSMS,
 } from 'src/lib';
 import { CancelApprovalDto } from './dto/cancel-approval.dto';
 import { PaginationService } from 'src/pagination/pagination.service';
@@ -16,63 +20,131 @@ import { IndividualSubscribersService } from 'src/individual-subscribers/individ
 import { CreateMandateDto } from './dto/create-mandate.dto';
 import { TransactionDto } from './dto/create-debit.dto';
 import { PaymentsService } from 'src/payments/payments.service';
+import { FamilySubscribersService } from 'src/family-subscribers/family-subscribers.service';
+import { CorporateSubscribersService } from 'src/corporate-subscribers/corporate-subscribers.service';
 
 @Injectable()
 export class MandateService {
   constructor(
     private readonly paginationService: PaginationService,
     private readonly individualSubscriberService: IndividualSubscribersService,
+    private readonly familySubscriberService: FamilySubscribersService,
+    private readonly corporateSubscriberService: CorporateSubscribersService,
     private readonly paymentService: PaymentsService,
   ) {}
 
+  // TODO: update this so it work for family and corporate
   async createMandate(data: CreateMandateDto) {
+    const {
+      responseCode,
+      responseMessage,
+      clientPhone,
+      thirdPartyReferenceNo,
+      mandateId,
+    } = data;
+
+    let mandateStatus, success;
     if (
-      data.responseCode === '01' ||
-      data.responseMessage === 'Mandate creation successful'
+      responseCode === '01' ||
+      responseMessage === 'Mandate creation successful'
     ) {
-      await this.individualSubscriberService.updateMandateStatus({
-        momoNumber: data.clientPhone,
-        referenceCode: data.thirdPartyReferenceNo,
-        mandateID: data.mandateId,
-        mandateStatus: MANDATESTATUS.Success,
-        success: true,
-      });
-      return {
-        code: HttpStatus.OK,
-        message: 'Mandate successful',
-      };
+      mandateStatus = MANDATESTATUS.Success;
+      success = true;
     } else if (
-      data.responseCode === '113' ||
-      data.responseMessage === 'User pre-approval failed'
+      responseCode === '113' ||
+      responseMessage === 'User pre-approval failed'
     ) {
-      await this.individualSubscriberService.updateMandateStatus({
-        momoNumber: data.clientPhone,
-        referenceCode: data.thirdPartyReferenceNo,
-        mandateID: data.mandateId,
-        mandateStatus: MANDATESTATUS.Failed,
-        success: false,
-      });
-      return {
-        code: HttpStatus.BAD_REQUEST,
-        message: 'User pre-approval failed',
-      };
+      mandateStatus = MANDATESTATUS.Failed;
+      success = false;
     } else {
-      return new BadRequestException();
+      throw new BadRequestException();
     }
+
+    let service;
+    if (thirdPartyReferenceNo.startsWith(SUBSCRIBER_CODES.Individual)) {
+      service = this.individualSubscriberService;
+    } else if (thirdPartyReferenceNo.startsWith(SUBSCRIBER_CODES.Family)) {
+      service = this.familySubscriberService;
+    } else {
+      service = this.corporateSubscriberService;
+    }
+
+    await service.updateMandateStatus({
+      momoNumber: clientPhone,
+      referenceCode: thirdPartyReferenceNo,
+      mandateID: mandateId,
+      mandateStatus,
+      success,
+    });
+
+    return {
+      code: success ? HttpStatus.OK : HttpStatus.BAD_REQUEST,
+      message: success ? 'Mandate successful' : 'User pre-approval failed',
+    };
   }
 
-  async cancelMandate(data: CancelMandateDtoDto) {
+  async cancelMandate(data: CancelMandateDtoDto): Promise<PaymentRespose> {
+    const { clientPhone, thirdPartyReferenceNo, mandateId } = data;
     try {
-      const res = await cancelMandate(data);
-      return res;
-    } catch (e) {
-      return e;
+      const res = await cancelMandate({ clientPhone, mandateId });
+
+      if (res.responseCode !== '01') return res;
+
+      await cancelPreapproval(clientPhone);
+
+      const content = `Your FastCare Subscription has been Cancelled. Your subscription is no more active. You will NOT be debited from today (${new Date()
+        .toISOString()
+        .slice(0, 10)}) onwards. Contact customer care at (${
+        process.env.CUSTOMER_CARE_NO
+      }) for queries if any. ⁠
+      `;
+
+      await sendSMS({ clientPhone: clientPhone, content: content });
+
+      let service;
+      if (thirdPartyReferenceNo.startsWith(SUBSCRIBER_CODES.Individual)) {
+        service = this.individualSubscriberService;
+      } else if (thirdPartyReferenceNo.startsWith(SUBSCRIBER_CODES.Family)) {
+        service = this.familySubscriberService;
+      } else {
+        service = this.corporateSubscriberService;
+      }
+
+      await service.updateMandateStatus({
+        momoNumber: clientPhone,
+        referenceCode: thirdPartyReferenceNo,
+        mandateID: mandateId,
+        mandateStatus: MANDATESTATUS.Cancelled,
+        success: true,
+      });
+
+      return { responseCode: '01', responseMessage: 'Cancelled Mandate' };
+    } catch (error) {
+      return error;
     }
   }
 
   async cancelPreapproval(data: CancelApprovalDto) {
     try {
       const res = await cancelPreapproval(data.clientPhone);
+      return res;
+    } catch (e) {
+      return e;
+    }
+  }
+
+  async readMandateStatusForMomoNumber(momoNumber: string) {
+    try {
+      const res = await readMandateStatusForMomoNumber(momoNumber);
+      return res;
+    } catch (e) {
+      return e;
+    }
+  }
+
+  async getMandatesForAMomoNumber(momoNumber: string) {
+    try {
+      const res = await readMandatesForAMomoNumber(momoNumber);
       return res;
     } catch (e) {
       return e;

@@ -78,6 +78,7 @@ export enum MANDATESTATUS {
   Pending = 'Pending',
   Success = 'Success',
   Failed = 'Failed',
+  Cancelled = 'Cancelled',
   None = '',
 }
 

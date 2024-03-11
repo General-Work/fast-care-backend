@@ -35,6 +35,7 @@ import {
   calculateDiscount,
   createMandate,
   delay,
+  sendSMS,
 } from 'src/lib';
 import { Bank } from 'src/bank/entities/bank.entity';
 import { PackagesService } from 'src/packages/packages.service';
@@ -108,6 +109,15 @@ export class IndividualSubscribersService {
 
       if (data.paymentMode === PAYMENTMODE.MOMO) {
         await this.createMandateIfNeeded(data, subscriber.paymentReferenceCode);
+        const packageSelected = await this.packageService.findOne(
+          +data.package,
+        );
+        const amount = `${calculateDiscount(
+          packageSelected.amount,
+          +data.discount,
+        )}`;
+        const content = `Thank you. Your FastCare Subscription - (${packageSelected.name})has been submitted pending payment authorisation for a ${data.frequency} deduction of Ghc (${amount}.00) from your momo account. Please check your momo phone for authorisation prompt.`;
+        await sendSMS({ clientPhone: data.momoNumber, content });
       }
 
       await this.saveSubscriberAndPayment(subscriber, payment, true, agent);
@@ -715,9 +725,13 @@ export class IndividualSubscribersService {
         .createQueryBuilder('payment')
         .leftJoinAndSelect('payment.subscriber', 'subscriber')
         // .select(['id', 'payments'])
-        .where('subscriber.id = :subscriberId', {
-          subscriberId: subscriber.id,
-        })
+        .where(
+          'subscriber.id = :subscriberId AND payment.referenceCode = :referenceCode',
+          {
+            subscriberId: subscriber.id,
+            referenceCode: data.referenceCode,
+          },
+        )
         .orderBy('payment.id', 'DESC')
         .select(['payment', 'subscriber.id'])
         .getOne();

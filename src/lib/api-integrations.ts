@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { FREQUENCY, MOMONETWORK } from './constants';
 
-interface PaymentRespose {
+export interface PaymentRespose {
   responseCode: string;
   responseMessage: string;
 }
@@ -12,6 +12,11 @@ export interface CreateManadateDto {
   frequency: FREQUENCY;
   membershipId: string;
   momoNetWork: MOMONETWORK;
+}
+
+export interface ISMS {
+  clientPhone: string;
+  content: string;
 }
 export async function createMandate(
   data: CreateManadateDto,
@@ -31,7 +36,7 @@ export async function createMandate(
 
 export interface CancelMandateData {
   // merchantId: merchantId;
-  productId: string;
+  // productId: string;
   clientPhone: string;
   mandateId: string;
   // apiKey: mandateKey;
@@ -43,7 +48,7 @@ export async function cancelMandate(
   try {
     const res = await axios.post(`${process.env.PAYMENT_URL}/cancel/mandate`, {
       merchantId: process.env.PAYMENT_MERCHANTID,
-      productId: data.productId,
+      productId: process.env.PAYMENT_PRODUCTID,
       clientPhone: data.clientPhone,
       mandateId: data.mandateId,
       apiKey: process.env.PAYMENT_MANDATEKEY,
@@ -73,4 +78,35 @@ export async function cancelPreapproval(
   }
 }
 
+export async function readMandateStatusForMomoNumber(momoNumber: string) {
+  try {
+    const res = await axios.get(
+      `${process.env.PAYMENT_URL}/mandate/status/${momoNumber}`,
+    );
+    return res.data;
+  } catch (e) {
+    return e;
+  }
+}
 
+export async function readMandatesForAMomoNumber(momoNumber: string) {
+  try {
+    const res = await axios.get(
+      `${process.env.PAYMENT_URL}/retrieve-mandate/details/${momoNumber}/${process.env.PAYMENT_MERCHANTID}`,
+    );
+    return res.data;
+  } catch (e) {
+    return e;
+  }
+}
+
+export async function sendSMS(data: ISMS) {
+  try {
+    const res = await axios.get(
+      `https://sms.nalosolutions.com/smsbackend/clientapi/Resl_Nalo/send-message/?username=${process.env.SMS_USERNAME}&password=${process.env.SMS_PASSWORD}&type=0&dlr=1&destination=${data.clientPhone}&source=${process.env.SMS_SENDER_ID}&message=${data.content}`,
+    );
+    return res.data;
+  } catch (e) {
+    return e;
+  }
+}

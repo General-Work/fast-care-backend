@@ -95,14 +95,14 @@ export class PaymentsService {
   }
 
   async fetchSubscribersAllSubscribers(options: PaginationOptions) {
-    const data = await this.paginationService.paginate({
+    const subscribers = await this.paginationService.paginate({
       ...options,
       repository: this.allSubscriberRepository,
       relations: ['bank'],
     });
 
     const newData = await Promise.all(
-      data.data.map(async (d: AllSubscribers) => {
+      subscribers.data.map(async (d: AllSubscribers) => {
         let amountDue: number = 0;
         let daysSinceLastPayment: number | null = null;
         let subscriberDetails: any;
@@ -166,7 +166,10 @@ export class PaymentsService {
       }),
     );
 
-    return newData;
+    return {
+      ...subscribers,
+      data: newData,
+    };
   }
 
   async addToAllSubscribers(data: ISubscriberDto) {

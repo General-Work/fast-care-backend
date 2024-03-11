@@ -1,16 +1,13 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString } from 'class-validator';
+import { IsNotEmpty, IsString } from 'class-validator';
 
 export class CancelMandateDtoDto {
+  @IsNotEmpty()
   @IsString()
-  @ApiProperty({
-    description: 'productId',
-    example: 'string',
-    required: true,
-    type: String,
-  })
-  productId: string;
+  @ApiProperty()
+  thirdPartyReferenceNo: string;
 
+  @IsNotEmpty()
   @IsString()
   @ApiProperty({
     description: 'clientPhone',
@@ -20,6 +17,7 @@ export class CancelMandateDtoDto {
   })
   clientPhone: string;
 
+  @IsNotEmpty()
   @IsString()
   @ApiProperty({
     description: 'TmandateId',
@@ -28,5 +26,4 @@ export class CancelMandateDtoDto {
     type: String,
   })
   mandateId: string;
-
 }

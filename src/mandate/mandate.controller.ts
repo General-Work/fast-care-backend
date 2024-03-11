@@ -28,7 +28,7 @@ export class MandateController {
   @Post('debit')
   postDebit(@Body() data: TransactionDto) {
     console.log('transaction', data);
-    return this.mandateService.postDebit(data)
+    return this.mandateService.postDebit(data);
   }
 
   @Post('cancel/mandate')
@@ -41,5 +41,15 @@ export class MandateController {
   preapprovalMandate(@Body() data: CancelApprovalDto) {
     // console.log(data);
     return this.mandateService.cancelPreapproval(data);
+  }
+
+  @Get('mandate-status/:momoNumber')
+  readMandateStatusForMomoNumber(@Param('momoNumber') momoNumber: string) {
+    return this.mandateService.readMandateStatusForMomoNumber(momoNumber);
+  }
+
+  @Get('mandates-for-momonumber/:momoNumber')
+  readMandatesForAMomoNumber(@Param('momoNumber') momoNumber: string) {
+    return this.mandateService.getMandatesForAMomoNumber(momoNumber);
   }
 }
