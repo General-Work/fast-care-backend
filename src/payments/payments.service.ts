@@ -370,7 +370,7 @@ export class PaymentsService {
     return this.allSubscriberRepository.findOneBy({ id });
   }
 
-  async subscriberView(options: PaginationOptions) {
+  private async subscriberView(options: PaginationOptions) {
     // this.updateAgent()
     const newOptions = {
       order: [],
@@ -516,37 +516,37 @@ export class PaymentsService {
       doc.moveDown();
 
       const subscribers = await this.subscriberView(options);
-      console.log(subscribers);
       // if (!subscribers.data.length) {
       //   throw new BadRequestException('No subscribers found');
       // }
-      const newSubscribers = subscribers.data.length > 0
-        ? subscribers.data.map((e, i) => ({
-            // id: e.id,
-            count: i + 1,
-            name: e.name,
-            membershipID: e.membershipID,
-            subscriberType: e.subscriberType,
-            dlsp: e.daysSinceLastPayment,
-            currentPaymentDate: e.currentPaymentDate,
-            subscriberStatus: e.subscriberStatus,
-          }))
-        : [];
-      const headers = newSubscribers.length > 0
-        ? Object.keys(newSubscribers[0])
-        : [];
+      const newSubscribers =
+        subscribers.data.length > 0
+          ? subscribers.data.map((e, i) => ({
+              // id: e.id,
+              count: i + 1,
+              name: e.name,
+              membershipID: e.membershipID,
+              subscriberType: e.subscriberType,
+              dlsp: e.daysSinceLastPayment,
+              currentPaymentDate: e.currentPaymentDate,
+              subscriberStatus: e.subscriberStatus,
+            }))
+          : [];
+      const headers =
+        newSubscribers.length > 0 ? Object.keys(newSubscribers[0]) : [];
 
-      const rows = newSubscribers.length > 0
-        ? newSubscribers.map((subscriber) =>
-            headers.map((header) =>
-              typeof subscriber[header] === 'number'
-                ? String(subscriber[header])
-                : subscriber[header] !== null
-                  ? subscriber[header]
-                  : '',
-            ),
-          )
-        : [];
+      const rows =
+        newSubscribers.length > 0
+          ? newSubscribers.map((subscriber) =>
+              headers.map((header) =>
+                typeof subscriber[header] === 'number'
+                  ? String(subscriber[header])
+                  : subscriber[header] !== null
+                    ? subscriber[header]
+                    : '',
+              ),
+            )
+          : [];
       const table = {
         headers: [
           '#',

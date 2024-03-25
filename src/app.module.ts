@@ -20,6 +20,7 @@ import { AppController } from './app.controller';
 import { CorporateSubscribersModule } from './corporate-subscribers/corporate-subscribers.module';
 import { BankModule } from './bank/bank.module';
 import { MandateModule } from './mandate/mandate.module';
+import { ReportsModule } from './reports/reports.module';
 
 @Module({
   imports: [
@@ -41,6 +42,7 @@ import { MandateModule } from './mandate/mandate.module';
     BankModule,
     MandateModule,
     PaymentsModule,
+    ReportsModule,
   ],
   controllers: [AppController],
   providers: [ExtractUserMiddleware],
