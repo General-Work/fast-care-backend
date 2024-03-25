@@ -7,7 +7,7 @@ import {
   SUBSCRIBERTYPE,
   SUBSCRIBER_STATUS,
 } from 'src/lib';
-import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, CreateDateColumn, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity('all_subscribers')
 export class AllSubscribers {
@@ -16,6 +16,9 @@ export class AllSubscribers {
 
   @Column()
   name: string;
+
+  @CreateDateColumn()
+  createdAt: Date
 
   // @Column({type:'money', default:''})
   // amountDue:number
@@ -85,4 +88,7 @@ export class AllSubscribers {
 
   @Column()
   status: SUBSCRIBER_STATUS;
+
+  @Column({default: null})
+  agentId: number
 }

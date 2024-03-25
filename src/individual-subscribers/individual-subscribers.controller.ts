@@ -63,6 +63,7 @@ export class IndividualSubscribersController {
     @UploadedFile() passportPicture: Multer.File,
     @Req() req: Request,
   ) {
+    // console.log(createIndividualSubscriberDto)
     if (passportPicture && !passportPicture.mimetype.startsWith('image/')) {
       throw new BadRequestException('Uploaded file should be an image.');
     }

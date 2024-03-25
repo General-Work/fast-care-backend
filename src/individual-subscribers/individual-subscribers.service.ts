@@ -82,9 +82,9 @@ export class IndividualSubscribersService {
   ) {
     try {
       const staffPromise = this.findOrCreateStaff(agent);
-      const facilityPromise = this.findOrCreateFacility(+data.facility);
-      const groupPromise = this.findOrCreateGroup(+data.group);
-      const packagePromise = this.findOrCreatePackage(+data.package);
+      const facilityPromise = this.findOrCreateFacility(+data?.facility);
+      const groupPromise = this.findOrCreateGroup(+data?.group);
+      const packagePromise = this.findOrCreatePackage(+data?.package);
       const membershipIDPromise = this.generateStaffCode();
 
       const [staff, facility, group, newPackage, membershipID] =
@@ -116,7 +116,7 @@ export class IndividualSubscribersService {
           packageSelected.amount,
           +data.discount,
         )}`;
-        const content = `Thank you. Your FastCare Subscription - (${packageSelected.name})has been submitted pending payment authorisation for a ${data.frequency} deduction of Ghc (${amount}.00) from your momo account. Please check your momo phone for authorisation prompt.`;
+        const content = `Thank you. Your FastCare Subscription - (${packageSelected.name}) has been submitted pending payment authorisation for a ${data.frequency} deduction of Ghc (${amount}.00) from your momo account. Please check your momo phone for authorisation prompt.`;
         await sendSMS({ clientPhone: data.momoNumber, content });
       }
 
@@ -159,7 +159,7 @@ export class IndividualSubscribersService {
       .leftJoinAndSelect(`${alias}.package`, 'package')
       .leftJoinAndSelect(`${alias}.group`, 'group')
       .leftJoinAndSelect(`${alias}.bank`, 'bank')
-      .leftJoinAndSelect(`${alias}.payments`, 'payments');
+      .leftJoinAndSelect(`${alias}.payments`, 'payments').getMany();
   }
 
   async findAll(options: PaginationOptions): Promise<PaginatedResult> {
@@ -204,6 +204,22 @@ export class IndividualSubscribersService {
   //   return this.subscriberRepository.findOneBy({ paymentReferenceCode: code });
   // }
 
+  // async updateCreatedAtToPaymentDate(id:number): Promise<void> {
+  //   try {
+  //     const paymentsToUpdate = await this.paymentService.findSubscriberBasicDetails(id);
+
+  //     for (const payment of paymentsToUpdate) {
+  //       await this.paymentRepository.update(
+  //         { id: payment.id },
+  //         { createdAt: payment.dateOfPayment },
+  //       );
+  //     }
+  //   } catch (error) {
+  //     // Handle error appropriately
+  //     console.error('Error occurred while updating createdAt:', error);
+  //   }
+  // }
+
   async update(
     id: number,
     data: UpdateIndividualSubscriberDto,
@@ -224,6 +240,7 @@ export class IndividualSubscribersService {
         name: `${newSubscriber.firstName} ${newSubscriber.otherNames ?? ''} ${
           newSubscriber.lastName
         }`,
+        agentId: newSubscriber.agent.id,
         subscriberId: newSubscriber.id,
         bank: newSubscriber?.bank ?? null,
         subscriberType: SUBSCRIBERTYPE.Individual,
@@ -241,6 +258,7 @@ export class IndividualSubscribersService {
         CAGDStaffID: newSubscriber.CAGDStaffID,
         paymentReferenceCode: newSubscriber.paymentReferenceCode,
         status: SUBSCRIBER_STATUS.Active,
+        createdAt: new Date(),
       };
       await this.paymentService.updateSubscriber(
         subscriberData.paymentReferenceCode,
@@ -335,6 +353,7 @@ export class IndividualSubscribersService {
       frequency: data.frequency,
     };
     const res = await createMandate(x);
+    console.log('mandate checkpoint', res);
     if (res.responseCode !== '03') {
       throw new BadRequestException(res.responseMessage);
       // return true
@@ -448,6 +467,7 @@ export class IndividualSubscribersService {
       name: `${subscriberDb.firstName} ${subscriberDb.otherNames ?? ''} ${
         subscriberDb.lastName
       }`,
+      agentId: subscriberDb.agent.id,
       subscriberId: subscriberDb.id,
       subscriberType: SUBSCRIBERTYPE.Individual,
       membershipID: subscriber.membershipID,
@@ -475,6 +495,7 @@ export class IndividualSubscribersService {
 
       paymentReferenceCode: subscriberDb.paymentReferenceCode,
       status: SUBSCRIBER_STATUS.Active,
+      createdAt: new Date(),
     };
 
     await this.paymentService.addToAllSubscribers(data);

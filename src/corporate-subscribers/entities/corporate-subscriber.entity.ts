@@ -44,6 +44,7 @@ export class CorporateSubscriber {
   @ManyToOne(() => Staff, (staff) => staff.corporateSubscribers, {
     cascade: true,
     nullable: false,
+    eager:true
   })
   agent: Staff;
 

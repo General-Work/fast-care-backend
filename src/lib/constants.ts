@@ -133,7 +133,13 @@ export enum SUBSCRIBER_PAYMENT_STATUS {
   Today = 'Made payment today',
   NotConfirmed = 'Has payment pending confirmation',
   AmountDue = 'Has amount due payment',
-  NoPayment = "Has no payment"
+  NoPayment = 'Has no payment',
+}
+
+export enum SUBSCRIBER_STANDING {
+  good = 'In good standing',
+  default = 'Defaulter',
+  inactive = 'Inactive',
 }
 
 export interface ISubscriberDto {
@@ -142,6 +148,7 @@ export interface ISubscriberDto {
   //   amountDue: number
 
   //   daysSinceLastPayment:number
+  agentId: number
 
   subscriberId: number;
 
@@ -184,4 +191,5 @@ export interface ISubscriberDto {
   paymentReferenceCode: string;
 
   status: SUBSCRIBER_STATUS;
+  createdAt:Date
 }

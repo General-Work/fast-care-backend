@@ -6,6 +6,7 @@ import * as dayjs from 'dayjs';
 import { CorporateBeneficiaries } from 'src/corporate-subscribers/entities/corporate-beneficiaries.entity';
 import { FamilyBeneficiaries } from 'src/family-subscribers/entities/family-beneficiaries.entity';
 import { Payment } from 'src/payments/entities/payment.entity';
+import { SUBSCRIBER_STANDING } from './constants';
 
 export function generateDefaultPassword(): string {
   const length = 8; // Length of the default password
@@ -118,25 +119,42 @@ export function getDaysDifferenceFromDate(dateString) {
 }
 
 export function getCurrentPaymentDate(payments: Payment[]) {
-  if (payments.length === 0 || !payments.some(p => p.confirmed)) {
+  if (payments.length === 0 || !payments.some((p) => p.confirmed)) {
     return null; // Return null if there are no confirmed payments
   }
 
   // Find the latest confirmed payment date
-  const latestPayment = payments.reduce((latest, payment) => {
-    const paymentDate = new Date(payment.dateOfPayment);
-    if (payment.confirmed && paymentDate > latest.date) {
-      return { date: paymentDate, daysDifference: getDaysDifferenceFromDate(paymentDate) ?? 0 };
-    }
-    return latest;
-  }, { date: new Date(0), daysDifference: 0 });
+  const latestPayment = payments.reduce(
+    (latest, payment) => {
+      const paymentDate = new Date(payment.dateOfPayment);
+      if (payment.confirmed && paymentDate > latest.date) {
+        return {
+          date: paymentDate,
+          daysDifference: getDaysDifferenceFromDate(paymentDate) ?? 0,
+        };
+      }
+      return latest;
+    },
+    { date: new Date(0), daysDifference: 0 },
+  );
+
+  const { daysDifference } = latestPayment;
+
+  let status: string;
+  if (daysDifference <= 30) {
+    status = SUBSCRIBER_STANDING.good;
+  } else if (daysDifference > 30 && daysDifference <= 60) {
+    status = SUBSCRIBER_STANDING.default;
+  } else {
+    status = SUBSCRIBER_STANDING.inactive;
+  }
 
   return {
     currentPaymentDate: latestPayment.date,
-    daysDifference: latestPayment.daysDifference,
+    daysDifference: daysDifference,
+    status
   };
 }
-
 
 export function sumPackageAmounts(
   beneficiaries: CorporateBeneficiaries[] | FamilyBeneficiaries[],

@@ -6,16 +6,13 @@ import {
   NotFoundException,
   forwardRef,
 } from '@nestjs/common';
-import { CreatePaymentDto } from './dto/create-payment.dto';
-import { UpdatePaymentDto } from './dto/update-payment.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IndividualSubscriberPayment } from 'src/individual-subscribers/entities/individual-subscriber-payment.entity';
-import { Repository } from 'typeorm';
+import { Between, LessThanOrEqual, MoreThanOrEqual, Repository } from 'typeorm';
 import {
   PaginationOptions,
   PaginationService,
 } from 'src/pagination/pagination.service';
-// import { CorporateSubscriberPayment } from 'src/corporate-subscribers/entities/corporate-payment.entity';
 import { Payment } from './entities/payment.entity';
 import {
   IPayment,
@@ -25,20 +22,22 @@ import {
   PAYMENTSTATUS,
   SUBSCRIBERTYPE,
   SUBSCRIBER_PAYMENT_STATUS,
+  SUBSCRIBER_STANDING,
   calculateDiscount,
   getCurrentPaymentDate,
   sumPackageAmounts,
 } from 'src/lib';
-// import { IndividualSubscriber } from 'src/individual-subscribers/entities/individual-subscriber.entity';
-// import { FamilySubscriber } from 'src/family-subscribers/entities/family-subscriber.entity';
-// import { CorporateSubscriber } from 'src/corporate-subscribers/entities/corporate-subscriber.entity';
-// import { FamilySubscriberPayment } from 'src/family-subscribers/entities/family-subscriber-payment.entity';
+
 import { IndividualSubscribersService } from 'src/individual-subscribers/individual-subscribers.service';
 import { FamilySubscribersService } from 'src/family-subscribers/family-subscribers.service';
 import { CorporateSubscribersService } from 'src/corporate-subscribers/corporate-subscribers.service';
 import { AllSubscribers } from './entities/all-subscribers.entity';
 import { PremiumPayment } from './dto/premium-payment.dto';
 import { Bank } from 'src/bank/entities/bank.entity';
+import * as dayjs from 'dayjs';
+import { StaffService } from 'src/staff/staff.service';
+
+const PDFDocumentTable = require('pdfkit-table');
 
 @Injectable()
 export class PaymentsService {
@@ -57,6 +56,8 @@ export class PaymentsService {
 
     @InjectRepository(AllSubscribers)
     private readonly allSubscriberRepository: Repository<AllSubscribers>,
+
+    private readonly agentService: StaffService,
   ) {}
 
   async findAll(options: PaginationOptions) {
@@ -107,6 +108,7 @@ export class PaymentsService {
         let daysSinceLastPayment: number | null = null;
         let subscriberDetails: any;
         let paymentStatus: SUBSCRIBER_PAYMENT_STATUS;
+        let phone = '';
 
         switch (d.subscriberType) {
           case SUBSCRIBERTYPE.Individual:
@@ -114,18 +116,22 @@ export class PaymentsService {
               await this.individualSubscriberService.findOneById(
                 d.subscriberId,
               );
+            phone = subscriberDetails.phoneOne;
             break;
           case SUBSCRIBERTYPE.Corporate:
             subscriberDetails =
               await this.corporateSubscriberService.findOneWithRelations(
                 d.subscriberId,
               );
+            phone = subscriberDetails.contact;
             break;
           default:
             subscriberDetails =
               await this.familySubscriberService.findOneWithRelations(
                 d.subscriberId,
               );
+            phone = subscriberDetails.contact;
+
             break;
         }
 
@@ -162,6 +168,7 @@ export class PaymentsService {
           amountDue,
           daysSinceLastPayment,
           paymentStatus,
+          phone,
         };
       }),
     );
@@ -181,8 +188,25 @@ export class PaymentsService {
     }
   }
 
-  async findSubscriberPayments(id: number) {
+  private async findSubscriberPayments(id: number) {
     return this.paymentRepository.find({ where: { subscriberDbId: id } });
+  }
+  private async findSubscriberPaymentsWithDateRange(
+    id: number,
+    startDate?: Date,
+    endDate?: Date,
+  ) {
+    const where: any = { subscriberDbId: id };
+
+    if (startDate && endDate) {
+      where.createdAt = Between(startDate, endDate);
+    } else if (startDate) {
+      where.createdAt = MoreThanOrEqual(startDate);
+    } else if (endDate) {
+      where.createdAt = LessThanOrEqual(endDate);
+    }
+
+    return this.paymentRepository.find({ where });
   }
   async updateSubscriber(referenceCode: string, data: Partial<ISubscriberDto>) {
     try {
@@ -330,4 +354,281 @@ export class PaymentsService {
   //     console.error('Error occurred while updating createdAt:', error);
   //   }
   // }
+
+  // async updateAgent() {
+  //   const subscribers =
+  //     await this.individualSubscriberService.findAllWithoutPagination();
+
+  //   for (const subscriber of subscribers) {
+  //     await this.allSubscriberRepository.update(subscriber.id, {
+  //       agentId: subscriber.agent.id,
+  //     });
+  //   }
+  // }
+
+  async findSubscriberBasicDetails(id: number) {
+    return this.allSubscriberRepository.findOneBy({ id });
+  }
+
+  async subscriberView(options: PaginationOptions) {
+    // this.updateAgent()
+    const newOptions = {
+      order: [],
+      routeName: options.routeName,
+      path: options.path,
+      query: options.query,
+      filter: options?.filter,
+    };
+    const subscribers = await this.paginationService.paginate({
+      ...newOptions,
+      repository: this.allSubscriberRepository,
+      // relations: ['bank'],
+    });
+
+    const newData = await Promise.all(
+      subscribers.data.map(async (d: AllSubscribers) => {
+        let amountDue: number = 0;
+        let daysSinceLastPayment: number | null = null;
+        let subscriberDetails: any;
+        let paymentStatus: SUBSCRIBER_PAYMENT_STATUS;
+        let currentPaymentDate: string | null = null;
+        let subscriberStatus: string | null = null;
+        let phone = '';
+
+        switch (d.subscriberType) {
+          case SUBSCRIBERTYPE.Individual:
+            subscriberDetails =
+              await this.individualSubscriberService.findOneById(
+                d.subscriberId,
+              );
+            phone = subscriberDetails.phoneOne;
+
+            break;
+          case SUBSCRIBERTYPE.Corporate:
+            subscriberDetails =
+              await this.corporateSubscriberService.findOneWithRelations(
+                d.subscriberId,
+              );
+            phone = subscriberDetails.contact;
+
+            break;
+          default:
+            subscriberDetails =
+              await this.familySubscriberService.findOneWithRelations(
+                d.subscriberId,
+              );
+            phone = subscriberDetails.contact;
+
+            break;
+        }
+        const payments = await this.findSubscriberPaymentsWithDateRange(
+          d.subscriberId,
+          options?.dateRange?.startDate,
+          options?.dateRange?.endDate,
+        );
+
+        if (payments.length === 0) {
+          paymentStatus = SUBSCRIBER_PAYMENT_STATUS.NoPayment;
+        }
+        if (subscriberDetails && payments.length > 0) {
+          const packageAmount =
+            d.subscriberType === SUBSCRIBERTYPE.Individual
+              ? subscriberDetails.package.amount
+              : sumPackageAmounts(subscriberDetails.beneficiaries);
+
+          const currentPayment = getCurrentPaymentDate(payments);
+          if (currentPayment !== null) {
+            amountDue = +(
+              (packageAmount / 30) *
+              currentPayment.daysDifference
+            ).toFixed(2);
+            daysSinceLastPayment = currentPayment.daysDifference;
+            currentPaymentDate = dayjs(
+              currentPayment.currentPaymentDate,
+            ).format('ddd DD MMM, YYYY');
+            subscriberStatus = currentPayment.status;
+            paymentStatus =
+              daysSinceLastPayment === 0
+                ? SUBSCRIBER_PAYMENT_STATUS.Today
+                : SUBSCRIBER_PAYMENT_STATUS.AmountDue;
+          } else {
+            paymentStatus = SUBSCRIBER_PAYMENT_STATUS.NotConfirmed;
+          }
+        }
+        return {
+          ...d,
+          amountDue,
+          daysSinceLastPayment,
+          paymentStatus,
+          currentPaymentDate,
+          subscriberStatus,
+          phone,
+        };
+      }),
+    );
+    return {
+      ...subscribers,
+      data: newData,
+    };
+  }
+
+  async subscriberViewReport(options: PaginationOptions): Promise<Buffer> {
+    let agentName = '';
+    if (options?.filter?.agentId) {
+      const agent = await this.agentService.findByID(options?.filter?.agentId);
+      agentName = `${agent.firstName} ${
+        agent.otherNames && agent.otherNames !== 'none' ? agent.otherNames : ''
+      } ${agent.lastName}`;
+    }
+    const pdfBuffer: Buffer = await new Promise(async (resolve) => {
+      const doc = new PDFDocumentTable({
+        size: 'A4',
+        bufferPages: true,
+        margin: 30,
+      });
+      let pageNumber = 0;
+      doc.on('pageAdded', () => {
+        pageNumber++;
+
+        let bottom = doc.page.margins.bottom;
+
+        doc.page.margins.bottom = 0;
+        doc.text('Pag.' + pageNumber, (doc.page.width - 100) * 0.5),
+          doc.page.height - 50,
+          {
+            width: 100,
+            align: 'center',
+            lineBreak: true,
+          };
+        doc.page.margins.bottom = bottom;
+      });
+      doc.image('src/assets/logo.png', { fit: [100, 100], align: 'center' });
+      doc
+        .text(dayjs(new Date()).format('ddd DD MMMM, YYYY'), {
+          align: 'right',
+        })
+        .moveTo(1, 1);
+      // console.log(new Date())
+      doc
+        .font('Helvetica')
+        .fontSize(18)
+        .text('FASTCARE CLINICS', { align: 'center' });
+      doc.moveDown();
+
+      const subscribers = await this.subscriberView(options);
+      console.log(subscribers);
+      // if (!subscribers.data.length) {
+      //   throw new BadRequestException('No subscribers found');
+      // }
+      const newSubscribers = subscribers.data.length > 0
+        ? subscribers.data.map((e, i) => ({
+            // id: e.id,
+            count: i + 1,
+            name: e.name,
+            membershipID: e.membershipID,
+            subscriberType: e.subscriberType,
+            dlsp: e.daysSinceLastPayment,
+            currentPaymentDate: e.currentPaymentDate,
+            subscriberStatus: e.subscriberStatus,
+          }))
+        : [];
+      const headers = newSubscribers.length > 0
+        ? Object.keys(newSubscribers[0])
+        : [];
+
+      const rows = newSubscribers.length > 0
+        ? newSubscribers.map((subscriber) =>
+            headers.map((header) =>
+              typeof subscriber[header] === 'number'
+                ? String(subscriber[header])
+                : subscriber[header] !== null
+                  ? subscriber[header]
+                  : '',
+            ),
+          )
+        : [];
+      const table = {
+        headers: [
+          '#',
+          'Name',
+          'Membership ID',
+          'Type',
+          'DLSP',
+          'LPD',
+          'Status',
+        ],
+        rows,
+      };
+      doc.font('Helvetica').fontSize(14).text('SUBSCRIBER-VIEW REPORT', {
+        align: 'center',
+        underline: true,
+      });
+      doc.moveDown();
+      doc
+        .font('Helvetica')
+        .fontSize(12)
+        .text(
+          `Start Date: ${
+            options?.dateRange?.startDate
+              ? dayjs(options?.dateRange?.startDate).format('ddd DD MMMM, YYYY')
+              : 'N/A'
+          }`,
+          {
+            align: 'left',
+          },
+        )
+        .moveUp(1);
+
+      doc
+        .font('Helvetica')
+        .fontSize(12)
+        .text(
+          `End Date: ${
+            options?.dateRange?.endDate
+              ? dayjs(options?.dateRange?.endDate).format('ddd DD MMMM, YYYY')
+              : 'N/A'
+          }`,
+          {
+            align: 'right',
+          },
+        );
+      doc.moveDown();
+      if (agentName)
+        doc.font('Helvetica').fontSize(12).text(`Agent: ${agentName}`, {
+          align: 'left',
+        });
+      // .moveUp(1);
+      doc.moveDown();
+
+      doc.table(table, {
+        columnSpacing: 4,
+        padding: 4,
+        prepareHeader: () => doc.font('Helvetica-Bold').fontSize(8),
+        prepareRow: (row, indexColumn, indexRow, rectRow) => {
+          doc.font('Helvetica').fontSize(8);
+          indexColumn === 0 &&
+            doc.addBackground(
+              rectRow,
+              row[6] === SUBSCRIBER_STANDING.good
+                ? 'green'
+                : row[6] === SUBSCRIBER_STANDING.default
+                  ? 'blue'
+                  : row[6] === SUBSCRIBER_STANDING.inactive
+                    ? 'red'
+                    : '',
+              0.15,
+            );
+        },
+      });
+
+      const buffer = [];
+      doc.on('data', buffer.push.bind(buffer));
+      doc.on('end', () => {
+        const data = Buffer.concat(buffer);
+        resolve(data);
+      });
+      doc.end();
+    });
+    return pdfBuffer;
+  }
 }

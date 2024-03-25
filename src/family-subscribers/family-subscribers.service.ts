@@ -496,6 +496,7 @@ export class FamilySubscribersService {
       name: familySubscriber.name,
       // amountDue: 12,
       // daysSinceLastPayment: 0,
+      agentId: familySubscriber.agent.id,
       subscriberId: familySubscriber.id,
       subscriberType: SUBSCRIBERTYPE.Family,
       familyPackageId: newPackage.id,
@@ -514,6 +515,7 @@ export class FamilySubscribersService {
       paymentReferenceCode: newPackage.paymentReferenceCode,
       bank: newPackage?.bank ?? null,
       status: SUBSCRIBER_STATUS.Active,
+      createdAt: new Date()
     };
     await this.paymentService.addToAllSubscribers(subscriberData);
 
@@ -825,7 +827,7 @@ export class FamilySubscribersService {
   }
 
   async findAllWithoutPagination() {
-    return this.familyRepository.find();
+    return await this.familyRepository.find();
   }
 
   async updateMandateStatus(data: {

@@ -41,6 +41,7 @@ export class FamilySubscriber {
   @ManyToOne(() => Staff, (staff) => staff.familySubscribers, {
     cascade: true,
     nullable: false,
+    eager: true
   })
   agent: Staff;
 

@@ -472,6 +472,7 @@ export class CorporateSubscribersService {
 
       const subscriberData: ISubscriberDto = {
         name: corporateSubscriber.name,
+        agentId: corporateSubscriber.agent.id,
         subscriberId: corporateSubscriber.id,
         subscriberType: SUBSCRIBERTYPE.Corporate,
         membershipID: corporateSubscriber.corporateMembershipID,
@@ -490,6 +491,7 @@ export class CorporateSubscribersService {
         paymentReferenceCode: newPackage.paymentReferenceCode,
         bank: newPackage?.bank ?? null,
         status: SUBSCRIBER_STATUS.Active,
+        createdAt: new Date()
       };
       await this.paymentService.addToAllSubscribers(subscriberData);
 
@@ -835,7 +837,7 @@ export class CorporateSubscribersService {
   }
 
   async findAllWithoutPagination() {
-    return this.corporateRepository.find();
+    return await this.corporateRepository.find();
   }
 
   async updateMandateStatus(data: {

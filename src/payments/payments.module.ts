@@ -12,6 +12,7 @@ import { FamilySubscribersModule } from '../family-subscribers/family-subscriber
 import { CorporateSubscribersModule } from '../corporate-subscribers/corporate-subscribers.module';
 import { AllSubscribers } from './entities/all-subscribers.entity';
 import { Bank } from 'src/bank/entities/bank.entity';
+import { StaffModule } from 'src/staff/staff.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { Bank } from 'src/bank/entities/bank.entity';
       Bank,
       AllSubscribers,
     ]),
+    StaffModule,
     PaginationModule,
     forwardRef(() => IndividualSubscribersModule),
     forwardRef(() => FamilySubscribersModule),

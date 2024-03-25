@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { FREQUENCY, MOMONETWORK } from './constants';
+import * as dayjs from 'dayjs';
 
 export interface PaymentRespose {
   responseCode: string;
@@ -22,10 +23,26 @@ export async function createMandate(
   data: CreateManadateDto,
 ): Promise<PaymentRespose> {
   try {
-    // console.log(data);
+    const newData = {
+      merchantId: process.env.PAYMENT_MERCHANTID,
+      productId: process.env.PAYMENT_PRODUCTID,
+      clientPhone: data.momoNumber,
+      amountToDebit: data.amountToDebit,
+      frequencyType: data.frequency,
+      frequency: '1',
+      startDate: dayjs(new Date()).format('YYYY-MM-DD'),
+      endDate: dayjs(new Date()).add(20, 'year').format('YYYY-MM-DD'),
+      debitDay: '15',
+      apiKey: process.env.PAYMENT_MANDATEKEY,
+      thirdPartyReferenceNo: data.membershipId,
+      network: data.momoNetWork,
+    };
+
+    console.log(newData);
+
     const res = await axios.post(
-      `https://sub.fastcareportal.com/api/api/mandate`,
-      data,
+      `${process.env.PAYMENT_URL}/create/mandate`,
+      newData,
     );
 
     return res.data;
